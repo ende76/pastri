@@ -1,0 +1,12 @@
+.error {
+	color: red;
+	display: none;
+}
+
+.invalid textarea, .invalid input {
+	border-color: red;
+}
+
+.invalid .error.invalid {
+	display: block;
+}

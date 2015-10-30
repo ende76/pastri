@@ -1,0 +1,30 @@
+#output-hex, #output-bin {
+	cursor: pointer;
+	font-family: Courier;
+}
+
+#output-hex > span:nth-child(16n + 1) {
+	clear: left;
+}
+
+#output-hex > span {
+	float: left;
+	margin-right: 0.5em;
+}
+
+#output-hex > span:hover, #output-bin > span:hover {
+	background: lightgrey;
+}
+
+#output-bin > span:nth-child(4n + 1) {
+	clear: left;
+}
+
+#output-bin > span {
+	float: left;
+	margin-right: 1em;
+}
+
+#output-bin > span > span:nth-child(4) {
+	margin-right: 1em;
+}
