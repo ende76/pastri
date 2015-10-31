@@ -36,7 +36,7 @@ jQuery(function ($) {
 
 		while (splitBytesResult = re.exec(cleanInput)) {
 
-			splitBytes.push(splitBytesResult[0]);
+			splitBytes.push((splitBytesResult[0] + "0").slice(0, 2));
 		}
 
 		$outputHex.html(splitBytes.map(charSpanWrapped).map(spanWrapped));
