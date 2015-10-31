@@ -1,6 +1,7 @@
 #output-hex, #output-bin {
 	cursor: pointer;
 	font-family: Courier;
+	margin-bottom: 2em;
 }
 
 #output-hex > span:nth-child(16n + 1) {
@@ -12,9 +13,20 @@
 	margin-right: 0.5em;
 }
 
-#output-hex > span:hover, #output-bin > span:hover {
+#output-hex > span:hover,
+#output-hex > span.hover,
+#output-bin > span:hover,
+#output-bin > span.hover {
 	background: lightgrey;
 }
+
+#output-hex > span > span:hover,
+#output-hex > span > span.hover,
+#output-bin > span > span:hover,
+#output-bin > span > span.hover {
+	background: grey;
+}
+
 
 #output-bin > span:nth-child(4n + 1) {
 	clear: left;
