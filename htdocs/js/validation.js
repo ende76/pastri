@@ -16,6 +16,8 @@ jQuery(function ($) {
 	}
 
 	function validateEl($el) {
+		$el = $el || $(this);
+
 		var
 			pattern = $el.data("validate-pattern"),
 			value = $el.val(),
@@ -34,11 +36,15 @@ jQuery(function ($) {
 		}
 	}
 
-	function handleRequestValidate(data) {
-		var $el = data.from;
+	function validateAll($el) {
 
-		validateEl($el);
+		$el.each(validateEl);
 	}
 
-	Arbiter.subscribe("request/validate", handleRequestValidate);
+	function handleInput() {
+
+		validateEl($(this));
+	}
+
+	validateAll($("[data-validate-pattern]").on("input", handleInput));
 });
