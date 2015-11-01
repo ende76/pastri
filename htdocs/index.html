@@ -10,29 +10,72 @@
 		<link rel="stylesheet" href="css/normalize.css">
 		<link rel="stylesheet" href="css/main.css">
 		<link rel="stylesheet" href="css/validation.css">
+		<link rel="stylesheet" href="css/input.css">
 		<link rel="stylesheet" href="css/output.css">
+		<link rel="stylesheet" href="css/annotation.css">
 	</head>
 	<body>
 		<!--[if lt IE 8]>
 			<p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
 		<![endif]-->
 		<h1>Bitspect</h1>
-		<section>
+		<section id="input" class="clearfix">
 			<h2>Input</h2>
 			<div>
 				<span class="error invalid">Invalid Hex Input</span>
-				<textarea autofocus cols="80" id="input-hex" data-validate-pattern="^[0-9A-Fa-f\s]*$" rows="5"></textarea>
+				<textarea autofocus cols="40" id="input-hex" data-validate-pattern="^[0-9A-Fa-f\s]*$" rows="5"></textarea>
 			</div>
 		</section>
-		<section>
+		<section id="output" class="clearfix">
 			<h2>Output</h2>
 			<div class="clearfix" id="output-hex"></div>
 			<div class="clearfix" id="output-bin"></div>
 		</section>
+		<section id="annotation" class="clearfix">
+			<fieldset class="hidden" id="wbits">
+				<legend>WBITS</legend>
+				<div class="result">
+					<label>Value</label>
+					<div class="value"></div>
+				</div>
+				<div class="explanation">
+					<pre>
+1-7 bits: WBITS, a value in the range 10 - 24, encoded with
+          the following variable length code (as it appears in
+          the compressed data, where the bits are parsed from
+          right to left):
+
+                Value    Bit Pattern
+                -----    -----------
+                   10        0100001
+                   11        0110001
+                   12        1000001
+                   13        1010001
+                   14        1100001
+                   15        1110001
+                   16              0
+                   17        0000001
+                   18           0011
+                   19           0101
+                   20           0111
+                   21           1001
+                   22           1011
+                   23           1101
+                   24           1111
+
+          Note that bit pattern 0010001 is invalid and must not
+          be used.
+					</pre>
+				</div>
+			</fieldset>
+		</section>
 		<script src="js/vendor/arbiter.js" type="text/javascript"></script>
 		<script src="js/vendor/jquery-2.1.4.min.js" type="text/javascript"></script>
+		<script src="js/annotation.js" type="text/javascript"></script>
+		<script src="js/brotli.js" type="text/javascript"></script>
 		<script src="js/output.js" type="text/javascript"></script>
 		<script src="js/process-input.js" type="text/javascript"></script>
+		<script src="js/shared.js" type="text/javascript"></script>
 		<script src="js/validation.js" type="text/javascript"></script>
 	</body>
 </html>

@@ -1,6 +1,7 @@
 jQuery(function ($) {
 	var
 		classHover = "hover",
+		$output = $("#output"),
 		$outputBin = $("#output-bin"),
 		$outputHex = $("#output-hex"),
 		state = {
@@ -11,6 +12,12 @@ jQuery(function ($) {
 				"$hover": $("")
 			}
 		};
+
+	function viewAddHoverDataBinState($bit, $annotationEl) {
+		var $hoverData = $bit.data("$hover") || $("");
+
+		$bit.data("$hover", $hoverData.add($annotationEl));
+	}
 
 	function viewHoverBinState() {
 
@@ -44,6 +51,12 @@ jQuery(function ($) {
 		});
 	}
 
+	function viewFindBinBit(indexBit) {
+		var $byte = viewFindBinByte(Math.floor(indexBit / 8 + 0.0625));
+
+		return $byte.find("span").eq(7 - (indexBit % 8));
+	}
+
 	function viewFindHexByte(index) {
 		return $outputHex.find("> span").eq(index);
 	}
@@ -52,16 +65,28 @@ jQuery(function ($) {
 		return viewFindHexByte(indexByte).find("span").eq(indexNibble);
 	}
 
+	function viewFindHexNibbleFromIndexBit(indexBit) {
+		return viewFindHexNibble(Math.floor(indexBit / 8 + 0.0625), (((7 - (indexBit % 8)) < 4) ? 0 : 1))
+	}
+
+	function modelAddHoverBinState($hover) {
+		state.bin.$hover = state.bin.$hover.add($hover);
+	}
+
+	function modelAddHoverHexState($hover) {
+		state.hex.$hover = state.hex.$hover.add($hover);
+	}
+
 	function modelHoverBinState(hoverState) {
 		state.bin.$hover = hoverState;
 	}
 
-	function modelResetHoverBinState() {
-		state.bin.$hover = $("");
-	}
-
 	function modelHoverHexState(hoverState) {
 		state.hex.$hover = hoverState;
+	}
+
+	function modelResetHoverBinState() {
+		state.bin.$hover = $("");
 	}
 
 	function modelResetHoverHexState() {
@@ -98,13 +123,26 @@ jQuery(function ($) {
 			indexNibble = (($hoveredEl.index() < 4) ? 0 : 1),
 			indexByte = $hoveredEl.parent().index();
 
+		viewUnhoverBinState();
+		modelResetHoverBinState();
+
+		if (!!$hoveredEl.data("$hover")) {
+			$hoveredEl.data("$hover").addClass("hover");
+		}
+
 		updateHoverHexFromBin(indexByte, indexNibble);
 	}
 
 	function handleMouseleaveBin() {
+		var $hoveredEl = $(this);
+
 		viewUnhoverHexState();
 
 		modelResetHoverHexState();
+
+		if (!!$hoveredEl.data("$hover")) {
+			$hoveredEl.data("$hover").removeClass("hover");
+		}
 	}
 
 	function handleMouseenterHex() {
@@ -122,6 +160,33 @@ jQuery(function ($) {
 		modelResetHoverBinState();
 	}
 
+	function handleHoverRequested(e, data) {
+		var bitIndex;
+
+		viewUnhoverHexState();
+		modelResetHoverHexState();
+
+		viewUnhoverBinState();
+		modelResetHoverBinState();
+
+		for (bitIndex = data.from; bitIndex < data.to; bitIndex += 1) {
+			modelAddHoverBinState(viewFindBinBit(bitIndex));
+			viewAddHoverDataBinState(viewFindBinBit(bitIndex), data.$el);
+			modelAddHoverHexState(viewFindHexNibbleFromIndexBit(bitIndex));
+		}
+
+		viewHoverBinState();
+		viewHoverHexState();
+	}
+
+	function handleUnhoverRequested(e, data) {
+		viewUnhoverHexState();
+		modelResetHoverHexState();
+
+		viewUnhoverBinState();
+		modelResetHoverBinState();
+	}
+
 	$outputHex
 		.on("mouseenter", "> span > span", handleMouseenterHex)
 		.on("mouseleave", "> span > span", handleMouseleaveHex);
@@ -130,4 +195,7 @@ jQuery(function ($) {
 		.on("mouseenter", "> span > span", handleMouseenterBin)
 		.on("mouseleave", "> span > span", handleMouseleaveBin);
 
+	$output
+		.on("hover/requested", handleHoverRequested)
+		.on("unhover/requested", handleUnhoverRequested);
 });

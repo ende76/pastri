@@ -28,19 +28,10 @@ jQuery(function ($) {
 	}
 
 	function processInput(value) {
-		var
-			cleanInput = value.replace(/\s/g, "").toLowerCase(),
-			splitBytesResult,
-			re = new RegExp("[0-9a-f]{1,2}", "g"),
-			splitBytes = [];
+		var byteString = shared.toByteString(value);
 
-		while (splitBytesResult = re.exec(cleanInput)) {
-
-			splitBytes.push((splitBytesResult[0] + "0").slice(0, 2));
-		}
-
-		$outputHex.html(splitBytes.map(charSpanWrapped).map(spanWrapped));
-		$outputBin.html(splitBytes.map(toBinary).map(charSpanWrapped).map(spanWrapped));
+		$outputHex.html(byteString.map(charSpanWrapped).map(spanWrapped));
+		$outputBin.html(byteString.map(toBinary).map(charSpanWrapped).map(spanWrapped));
 	}
 
 	function handleInputPassed() {
