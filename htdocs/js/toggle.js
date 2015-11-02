@@ -21,5 +21,19 @@ jQuery(function ($) {
 		}
 	}
 
-	$container.on("click", ".toggle", handleClickToggle);
+	function handleResetRequested() {
+		var
+			$toggle = $(this),
+			$toggleShow = $(".show", this),
+			$toggleHide = $(".hide", this),
+			$target = $toggle.siblings($toggle.attr("href"));
+
+		shared.hide($target);
+		shared.hide($toggleHide);
+		shared.show($toggleShow);
+	}
+
+	$container
+		.on("click", ".toggle", handleClickToggle)
+		.on("reset/requested", ".toggle", handleResetRequested);
 });

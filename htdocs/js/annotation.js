@@ -1,11 +1,12 @@
 jQuery(function ($) {
 	var
 		$annotation = $("#annotation"),
-		$output = $("#output");
+		$output = $("#output"),
+		$input = $("#input-hex");
 
 	function handleAnnotationRequested(e, data) {
 		var
-			$el = $("#" + data.annotationId),
+			$el = data.$el,
 			$resultValue = $(".result .value", $el);
 
 		$resultValue.text(data.result);
@@ -41,8 +42,23 @@ jQuery(function ($) {
 		});
 	}
 
+	function handleInputPassed() {
+		$("> fieldset", $annotation).each(function () {
+			var
+				$el = $(this),
+				$resultValue = $(".result .value", $el),
+				$toggle = $(".toggle", $el);
+
+			$resultValue.text("").removeClass("error");
+			$toggle.trigger("reset/requested");
+			shared.hide($el);
+		});
+	}
+
 	$annotation
 		.on("annotation/requested", "fieldset", handleAnnotationRequested)
 		.on("mouseenter", "fieldset", handleMouseenter)
 		.on("mouseleave", "fieldset", handleMouseleave);
+
+	$input.on("input/passed", handleInputPassed);
 });

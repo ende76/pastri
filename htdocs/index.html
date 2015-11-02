@@ -121,6 +121,22 @@ formula:
 						</pre>
 					</div>
 				</fieldset>
+				<fieldset class="hidden" id="fillbits-0">
+					<legend>Fill bits</legend>
+					<a href=".explanation" class="toggle"><span class="show">[+]</span><span class="hide hidden">[–]</span></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+           […]with any remaining bits in the last byte
+           of the compressed stream filled with zeros (if the
+           fill bits are not zero, then the stream should be
+           rejected as invalid)
+						</pre>
+					</div>
+				</fieldset>
 				<fieldset class="hidden" id="mnibbles">
 					<legend>MNIBBLES</legend>
 					<a href=".explanation" class="toggle"><span class="show">[+]</span><span class="hide hidden">[–]</span></a>
@@ -203,7 +219,7 @@ formula:
 						</pre>
 					</div>
 				</fieldset>
-				<fieldset class="hidden" id="fillbits-0">
+				<fieldset class="hidden" id="fillbits-1">
 					<legend>Fill bits</legend>
 					<a href=".explanation" class="toggle"><span class="show">[+]</span><span class="hide hidden">[–]</span></a>
 					<div class="result">
@@ -217,7 +233,32 @@ formula:
 						</pre>
 					</div>
 				</fieldset>
-			</section>
+				<fieldset class="hidden" id="metadata">
+					<legend>Metadata</legend>
+					<a href=".explanation" class="toggle"><span class="show">[+]</span><span class="hide hidden">[–]</span></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+              MSKIPLEN bytes of metadata, not part of the
+                      uncompressed data or the sliding window
+						</pre>
+					</div>
+				</fieldset>
+				<fieldset class="hidden" id="end-of-stream">
+					<legend>End of stream</legend>
+					<a href=".explanation" class="toggle"><span class="show">[+]</span><span class="hide hidden">[–]</span></a>
+					<div class="result">
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+           The stream ended as expected
+						</pre>
+					</div>
+				</fieldset>			</section>
 		</section>
 		<script src="js/vendor/arbiter.js" type="text/javascript"></script>
 		<script src="js/vendor/jquery-2.1.4.min.js" type="text/javascript"></script>

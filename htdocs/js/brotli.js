@@ -8,13 +8,13 @@ jQuery(function ($) {
 		var
 			bytes = shared.toByteString(input).map(shared.toByte),
 			buf = Uint8ClampedArray.from(bytes),
-			wbits, windowSize, isLast, isLastEmpty, mNibbles,
-			reservedBit0, mSkipBytes, mSkipLen, fillBits0;
+			wbits, windowSize, isLast, isLastEmpty, fillBits0, mNibbles,
+			reservedBit0, mSkipBytes, mSkipLen, fillBits1, endOfStream;
 
 		reader = new shared.BitReader(buf);
 
 		wbits = {
-			"annotationId": "wbits",
+			"$el": $annotation.find("#wbits").clone().appendTo($annotation),
 			"bitIndex": {
 				"from": reader.globalBitIndex()
 			},
@@ -28,14 +28,14 @@ jQuery(function ($) {
 			wbits.error = true;
 		}
 
-		$annotation.find("#" + wbits.annotationId).trigger("annotation/requested", wbits);
+		wbits.$el.trigger("annotation/requested", wbits);
 
 		if (wbits.error) {
 			return;
 		}
 
 		windowSize = {
-			"annotationId": "window-size",
+			"$el": $annotation.find("#window-size").clone().appendTo($annotation),
 			"bitIndex": wbits.bitIndex,
 			"error": wbits.error,
 		};
@@ -44,36 +44,15 @@ jQuery(function ($) {
 			windowSize.result = (1 << wbits.result) - 16;
 		}
 
-		$annotation.find("#" + windowSize.annotationId).trigger("annotation/requested", windowSize);
+		windowSize.$el.trigger("annotation/requested", windowSize);
 
 		if (windowSize.error) {
 			return;
 		}
 
-		isLast = {
-			"annotationId": "islast",
-			"bitIndex": {
-				"from": reader.globalBitIndex()
-			},
-			"error": false,
-			"result": reader.readBit()
-		};
-
-		if (typeof isLast.result !== "string") {
-			isLast.bitIndex.to = reader.globalBitIndex();
-		} else {
-			isLast.error = true;
-		}
-
-		$annotation.find("#" + isLast.annotationId).trigger("annotation/requested", isLast);
-
-		if (isLast.error) {
-			return;
-		}
-
-		if (isLast.result === 1) {
-			isLastEmpty = {
-				"annotationId": "islastempty",
+		do {
+			isLast = {
+				"$el": $annotation.find("#islast").clone().appendTo($annotation),
 				"bitIndex": {
 					"from": reader.globalBitIndex()
 				},
@@ -81,84 +60,82 @@ jQuery(function ($) {
 				"result": reader.readBit()
 			};
 
-			if (typeof isLastEmpty.result !== "string") {
-				isLastEmpty.bitIndex.to = reader.globalBitIndex();
+			if (typeof isLast.result !== "string") {
+				isLast.bitIndex.to = reader.globalBitIndex();
 			} else {
-				isLastEmpty.error = true;
+				isLast.error = true;
 			}
 
-			$annotation.find("#" + isLastEmpty.annotationId).trigger("annotation/requested", isLastEmpty);
+			isLast.$el.trigger("annotation/requested", isLast);
 
-			if (isLastEmpty.error) {
+			if (isLast.error) {
 				return;
 			}
-		}
 
-		mNibbles = {
-			"annotationId": "mnibbles",
-			"bitIndex": {
-				"from": reader.globalBitIndex()
-			},
-			"error": false,
-			"result": reader.readNBits(2)
-		};
+			if (isLast.result === 1) {
+				isLastEmpty = {
+					"$el": $annotation.find("#islastempty").clone().appendTo($annotation),
+					"bitIndex": {
+						"from": reader.globalBitIndex()
+					},
+					"error": false,
+					"result": reader.readBit()
+				};
 
-		if (typeof mNibbles.result !== "string") {
-			mNibbles.result = [4, 5, 6, 0][mNibbles.result];
-			mNibbles.bitIndex.to = reader.globalBitIndex();
-		} else {
-			mNibbles.error = true;
-		}
-
-		$annotation.find("#" + mNibbles.annotationId).trigger("annotation/requested", mNibbles);
-
-		if (mNibbles.error) {
-			return;
-		}
-
-		if (mNibbles.result === 0) {
-			mNibblesIsZero = {
-				"annotationId": "mnibbles-is-zero",
-				"bitIndex": mNibbles.bitIndex,
-				"error": mNibbles.error,
-				"result": mNibbles.result
-			};
-
-			if (typeof mNibblesIsZero.result !== "string") {
-				mNibblesIsZero.bitIndex.to = reader.globalBitIndex();
-			} else {
-				mNibblesIsZero.error = true;
-			}
-
-			$annotation.find("#" + mNibblesIsZero.annotationId).trigger("annotation/requested", mNibblesIsZero);
-
-			reservedBit0 = {
-				"annotationId": "reserved-bit-0",
-				"bitIndex": {
-					"from": reader.globalBitIndex()
-				},
-				"error": false,
-				"result": reader.readBit()
-			};
-
-			if (typeof reservedBit0.result !== "string") {
-				reservedBit0.bitIndex.to = reader.globalBitIndex();
-				reservedBit0.error = reservedBit0.result !== 0;
-				if (reservedBit0.error) {
-					reservedBit0.result = "Reserved, must be zero";
+				if (typeof isLastEmpty.result !== "string") {
+					isLastEmpty.bitIndex.to = reader.globalBitIndex();
+				} else {
+					isLastEmpty.error = true;
 				}
-			} else {
-				reservedBit0.error = true;
+
+				isLastEmpty.$el.trigger("annotation/requested", isLastEmpty);
+
+				if (isLastEmpty.error) {
+					return;
+				}
+
+				if (isLastEmpty.result === 1) {
+					fillBits0 = {
+						"$el": $annotation.find("#fillbits-0").clone().appendTo($annotation),
+						"bitIndex": {
+							"from": reader.globalBitIndex()
+						},
+						"error": false,
+						"result": reader.readFillBits()
+					};
+
+					if (typeof fillBits0.result !== "string") {
+						fillBits0.bitIndex.to = reader.globalBitIndex();
+						if (fillBits0.result > 0) {
+							fillBits0.error = true;
+							fillBits0.result = "Non-zero fill bits";
+						}
+					} else {
+						fillBits0.error = true;
+					}
+
+					fillBits0.$el.trigger("annotation/requested", fillBits0);
+
+					if (!fillBits0.error) {
+						endOfStream = {
+							"$el": $annotation.find("#end-of-stream").clone().appendTo($annotation),
+							"bitIndex": {
+								"from": reader.globalBitIndex(),
+								"to": reader.globalBitIndex()
+							},
+							"error": false,
+							"result": ""
+						};
+
+						endOfStream.$el.trigger("annotation/requested", endOfStream);
+					}
+
+					return;
+				}
 			}
 
-			$annotation.find("#" + reservedBit0.annotationId).trigger("annotation/requested", reservedBit0);
-
-			if (reservedBit0.error) {
-				return;
-			}
-
-			mSkipBytes = {
-				"annotationId": "mskipbytes",
+			mNibbles = {
+				"$el": $annotation.find("#mnibbles").clone().appendTo($annotation),
 				"bitIndex": {
 					"from": reader.globalBitIndex()
 				},
@@ -166,81 +143,177 @@ jQuery(function ($) {
 				"result": reader.readNBits(2)
 			};
 
-			if (typeof mSkipBytes.result !== "string") {
-				mSkipBytes.bitIndex.to = reader.globalBitIndex();
+			if (typeof mNibbles.result !== "string") {
+				mNibbles.result = [4, 5, 6, 0][mNibbles.result];
+				mNibbles.bitIndex.to = reader.globalBitIndex();
 			} else {
-				mSkipBytes.error = true;
+				mNibbles.error = true;
 			}
 
-			$annotation.find("#" + mSkipBytes.annotationId).trigger("annotation/requested", mSkipBytes);
+			mNibbles.$el.trigger("annotation/requested", mNibbles);
 
-			if (mSkipBytes.error) {
+			if (mNibbles.error) {
 				return;
 			}
 
-			if (mSkipBytes.result > 0) {
-				mSkipLen = {
-					"annotationId": "mskiplen",
+			if (mNibbles.result === 0) {
+				mNibblesIsZero = {
+					"$el": $annotation.find("#mnibbles-is-zero").clone().appendTo($annotation),
+					"bitIndex": mNibbles.bitIndex,
+					"error": mNibbles.error,
+					"result": mNibbles.result
+				};
+
+				if (typeof mNibblesIsZero.result !== "string") {
+					mNibblesIsZero.bitIndex.to = reader.globalBitIndex();
+				} else {
+					mNibblesIsZero.error = true;
+				}
+
+				mNibblesIsZero.$el.trigger("annotation/requested", mNibblesIsZero);
+
+				reservedBit0 = {
+					"$el": $annotation.find("#reserved-bit-0").clone().appendTo($annotation),
 					"bitIndex": {
 						"from": reader.globalBitIndex()
 					},
 					"error": false,
-					"result": reader.readNBits(8 * mSkipBytes.result)
+					"result": reader.readBit()
 				};
 
-				if (typeof mSkipLen.result !== "string") {
-					mSkipLen.bitIndex.to = reader.globalBitIndex();
-
-					if (mSkipBytes.result > 1 && (mSkipLen.result >> ((mSkipBytes.result - 1) * 8)) === 0) {
-						mSkipLen.error = true;
-						mSkipLen.result = "Invalid MSKIPLEN value";
+				if (typeof reservedBit0.result !== "string") {
+					reservedBit0.bitIndex.to = reader.globalBitIndex();
+					reservedBit0.error = reservedBit0.result !== 0;
+					if (reservedBit0.error) {
+						reservedBit0.result = "Reserved, must be zero";
 					}
 				} else {
-					mSkipLen.error = true;
+					reservedBit0.error = true;
 				}
 
-				$annotation.find("#" + mSkipLen.annotationId).trigger("annotation/requested", mSkipLen);
+				reservedBit0.$el.trigger("annotation/requested", reservedBit0);
 
-				if (mSkipLen.error) {
+				if (reservedBit0.error) {
 					return;
 				}
-			} else {
-				mSkipLen = {
-					"annotationId": "mskiplen",
-					"bitIndex": mSkipBytes.bitIndex,
+
+				mSkipBytes = {
+					"$el": $annotation.find("#mskipbytes").clone().appendTo($annotation),
+					"bitIndex": {
+						"from": reader.globalBitIndex()
+					},
 					"error": false,
-					"result": 0
+					"result": reader.readNBits(2)
 				};
-			}
 
-			fillBits0 = {
-				"annotationId": "fillbits-0",
-				"bitIndex": {
-					"from": reader.globalBitIndex()
-				},
-				"error": false,
-				"result": reader.readFillBits()
-			};
-
-			if (typeof fillBits0.result !== "string") {
-				fillBits0.bitIndex.to = reader.globalBitIndex();
-				if (fillBits0.result > 0) {
-					fillBits0.error = true;
-					fillBits0.result = "Non-zero fill bits";
+				if (typeof mSkipBytes.result !== "string") {
+					mSkipBytes.bitIndex.to = reader.globalBitIndex();
+				} else {
+					mSkipBytes.error = true;
 				}
-			} else {
-				fillBits0.error = true;
+
+				mSkipBytes.$el.trigger("annotation/requested", mSkipBytes);
+
+				if (mSkipBytes.error) {
+					return;
+				}
+
+				if (mSkipBytes.result > 0) {
+					mSkipLen = {
+						"$el": $annotation.find("#mskiplen").clone().appendTo($annotation),
+						"bitIndex": {
+							"from": reader.globalBitIndex()
+						},
+						"error": false,
+						"result": reader.readNBits(8 * mSkipBytes.result)
+					};
+
+					if (typeof mSkipLen.result !== "string") {
+						mSkipLen.bitIndex.to = reader.globalBitIndex();
+
+						if (mSkipBytes.result > 1 && (mSkipLen.result >> ((mSkipBytes.result - 1) * 8)) === 0) {
+							mSkipLen.error = true;
+							mSkipLen.result = "Invalid MSKIPLEN value";
+						}
+					} else {
+						mSkipLen.error = true;
+					}
+
+					mSkipLen.$el.trigger("annotation/requested", mSkipLen);
+
+					if (mSkipLen.error) {
+						return;
+					}
+				} else {
+					mSkipLen = {
+						"$el": $annotation.find("#mskiplen").clone().appendTo($annotation),
+						"bitIndex": mSkipBytes.bitIndex,
+						"error": false,
+						"result": 0
+					};
+				}
+
+				fillBits1 = {
+					"$el": $annotation.find("#fillbits-1").clone().appendTo($annotation),
+					"bitIndex": {
+						"from": reader.globalBitIndex()
+					},
+					"error": false,
+					"result": reader.readFillBits()
+				};
+
+				if (typeof fillBits1.result !== "string") {
+					fillBits1.bitIndex.to = reader.globalBitIndex();
+					if (fillBits1.result > 0) {
+						fillBits1.error = true;
+						fillBits1.result = "Non-zero fill bits";
+					}
+				} else {
+					fillBits1.error = true;
+				}
+
+				fillBits1.$el.trigger("annotation/requested", fillBits1);
+
+				if (fillBits1.error) {
+					return;
+				}
+
+				if (mSkipLen.result > 0) {
+					metadata = {
+						"$el": $annotation.find("#metadata").clone().appendTo($annotation),
+						"bitIndex": {
+							"from": reader.globalBitIndex()
+						},
+						"error": false,
+						"result": reader.readNBits(mSkipLen * 8)
+					};
+
+					if (typeof metadata.result !== "string") {
+						metadata.bitIndex.to = reader.globalBitIndex();
+					} else {
+						metadata.error = true;
+					}
+
+					metadata.$el.trigger("annotation/requested", metadata);
+
+					if (metadata.error) {
+						return;
+					}
+				}
 			}
+		} while (isLast.result === 0);
 
-			$annotation.find("#" + fillBits0.annotationId).trigger("annotation/requested", fillBits0);
+		endOfStream = {
+			"$el": $annotation.find("#end-of-stream").clone().appendTo($annotation),
+			"bitIndex": {
+				"from": reader.globalBitIndex(),
+				"to": reader.globalBitIndex()
+			},
+			"error": false,
+			"result": ""
+		};
 
-			if (fillBits0.error) {
-				return;
-			}
-
-			return;
-		}
-
+		endOfStream.$el.trigger("annotation/requested", endOfStream);
 	}
 
 	function handleInputPassed() {
