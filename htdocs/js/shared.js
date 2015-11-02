@@ -1,48 +1,89 @@
 (function () {
 	shared = {
-		"BitReader": function(buf) {
+		"BitReader": function (buf) {
 			this.buf = buf;
 			this.nextGlobalBitIndex = 0;
 
-			this.globalBitIndex = function() {
+			this.globalBitIndex = function () {
 				return this.nextGlobalBitIndex;
 			};
 
-			this.nextBitIndex = function() {
+			this.nextBitIndex = function () {
 				return this.nextGlobalBitIndex % 8;
 			};
 
-			this.nextByteIndex = function() {
-				return Math.floor(this.nextGlobalBitIndex / 8 + 0.0625);
+			this.nextByteIndex = function () {
+				return shared.toByteIndex(this.nextGlobalBitIndex);
 			};
 
-			this.readBit = function() {
+			this.readBit = function () {
 				var
 					byteIndex = this.nextByteIndex(),
 					bitIndex = this.nextBitIndex();
 
-				if (byteIndex >= this.buf.length) {
+				if (shared.toByteIndex(this.nextGlobalBitIndex + 1) >= this.buf.length) {
 					return "End of buffer";
 				}
 
 				this.nextGlobalBitIndex += 1;
 				return (this.buf[byteIndex] >> bitIndex) & 1;
 			};
+
+			this.readNBits = function (n) {
+				var
+					byteIndex = this.nextByteIndex(),
+					bitIndex = this.nextBitIndex();
+
+				if (shared.toByteIndex(this.nextGlobalBitIndex + n) >= this.buf.length && ((this.nextGlobalBitIndex + n) % 8 > 0)) {
+					return "End of buffer";
+				}
+
+				if (n === 0) {
+					return 0;
+				}
+
+				if (bitIndex + n <= 8) {
+					this.nextGlobalBitIndex += n;
+					return (this.buf[byteIndex] >> bitIndex) & ((1 << n) - 1);
+				}
+
+				return this.readNBits(8 - bitIndex) | (this.readNBits(n - (8 - bitIndex)) << (8 - bitIndex));
+			};
+
+			this.readFillBits = function () {
+				var nextBitIndex = this.nextBitIndex();
+				if (nextBitIndex === 0) {
+					return null;
+				}
+
+				return this.readNBits(8 - nextBitIndex);
+			};
 		},
 		"classHidden": "hidden",
-		"hide": function($el) {
+		"hide": function ($el) {
 			return $el.addClass(shared.classHidden);
 		},
-		"PrefixCode": function() {
-			this.lookup = function(reader) {
-				var lookupIndex = 0
+		"isHidden": function ($el) {
+			return $el.hasClass(shared.classHidden);
+		},
+		"PrefixCode": function () {
+			this.lookup = function (reader) {
+				var
+					lookupIndex = 0,
+					bit;
 
 				if (this.len === 1) {
 					return this.lastSymbol;
 				}
 
 				while (lookupIndex < this.buf.length && null === this.buf[lookupIndex]) {
-					if (reader.readBit() === 0) {
+					bit = reader.readBit();
+
+					if (typeof bit === "string") {
+						return bit;
+					}
+
+					if (bit === 0) {
 						lookupIndex = (lookupIndex << 1) + 1;
 					} else {
 						lookupIndex = (lookupIndex << 1) + 2;
@@ -55,13 +96,16 @@
 				return this.buf[lookupIndex];
 			};
 		},
-		"show": function($el) {
+		"show": function ($el) {
 			return $el.removeClass(shared.classHidden);
 		},
-		"toByte": function(str) {
+		"toByte": function (str) {
 			return parseInt(str, 16);
 		},
-		"toByteString": function(value) {
+		"toByteIndex": function (bitIndex) {
+			return Math.floor(bitIndex / 8 + 0.0625);
+		},
+		"toByteString": function (value) {
 			var
 				cleanInput = value.replace(/\s/g, "").toLowerCase(),
 				splitBytesResult,
@@ -77,7 +121,7 @@
 		}
 	};
 
-	shared.PrefixCode.fromRawData = function(buf, len, lastSymbol) {
+	shared.PrefixCode.fromRawData = function (buf, len, lastSymbol) {
 		var pc = new shared.PrefixCode();
 
 		pc.buf = buf;

@@ -1,0 +1,4 @@
+#left-column, #right-column {
+	float: left;
+	margin-right: 2em;
+}

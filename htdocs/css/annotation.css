@@ -3,7 +3,8 @@
 }
 
 #annotation > fieldset {
-	font-size: 0.5em;
+	font-size: 0.6em;
+	min-width: 100px;
 }
 
 #annotation > fieldset:hover, #annotation > fieldset.hover {
@@ -14,7 +15,26 @@
 	font-weight: bold;
 }
 
+#annotation > fieldset > .result > label, #annotation > fieldset > .result > .value {
+	float: left;
+	margin-right: 0.5em;
+}
+
 #annotation > fieldset .result .value.error {
 	color: red;
 	font-weight: bold;
+}
+
+#annotation > fieldset .toggle {
+	float: left;
+	margin-right: 0.5em;
+}
+
+#annotation > fieldset .explanation {
+	padding-right: 2em;
+}
+
+#annotation > fieldset .explanation pre {
+	float: left;
+	clear: left;
 }
