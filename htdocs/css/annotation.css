@@ -28,6 +28,15 @@
 #annotation > fieldset .toggle {
 	float: left;
 	margin-right: 0.5em;
+	text-decoration: none;
+}
+
+#annotation > fieldset .toggle.hide:after {
+	content: "[–]";
+}
+
+#annotation > fieldset .toggle:after {
+	content: "[+]";
 }
 
 #annotation > fieldset .explanation {

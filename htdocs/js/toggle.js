@@ -1,36 +1,31 @@
 jQuery(function ($) {
-	var $container = $("#annotation");
+	var
+		classHide = "hide",
+		$container = $("#annotation");
 
 	function handleClickToggle(e) {
 		var
 			$toggle = $(this),
-			$toggleShow = $(".show", this),
-			$toggleHide = $(".hide", this),
 			$target = $toggle.siblings($toggle.attr("href"));
 
 		e.preventDefault();
 
 		if (shared.isHidden($target)) {
 			shared.show($target);
-			shared.show($toggleHide);
-			shared.hide($toggleShow);
+			$toggle.addClass(classHide);
 		} else {
 			shared.hide($target);
-			shared.hide($toggleHide);
-			shared.show($toggleShow);
+			$toggle.removeClass(classHide);
 		}
 	}
 
 	function handleResetRequested() {
 		var
 			$toggle = $(this),
-			$toggleShow = $(".show", this),
-			$toggleHide = $(".hide", this),
 			$target = $toggle.siblings($toggle.attr("href"));
 
 		shared.hide($target);
-		shared.hide($toggleHide);
-		shared.show($toggleShow);
+		$toggle.removeClass(classHide);
 	}
 
 	$container
