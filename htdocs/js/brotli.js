@@ -1,6 +1,7 @@
 jQuery(function ($) {
 	var
 		$input = $("#input-hex"),
+		$output = $("#output-bytes"),
 		$annotation = $("#annotation"),
 		reader;
 
@@ -8,10 +9,17 @@ jQuery(function ($) {
 		var
 			bytes = shared.toByteString(input).map(shared.toByte),
 			buf = Uint8ClampedArray.from(bytes),
+			out_buf = [],
 			wbits, windowSize, isLast, isLastEmpty, fillBits0, mNibbles,
 			mNibblesIsZero, reservedBit0, mSkipBytes, mSkipLen, metadata,
 			fillBits1, mLen, isUncompressed, fillBits2, uncompressedLiterals,
 			endOfStream;
+
+		function write_out(bytes) {
+			Array.prototype.push.apply(out_buf, bytes);
+
+			$output.html(out_buf.map(function (b) { return "<span>" + b.toString(16) + "</span>"; }).join(""));
+		}
 
 		reader = new shared.BitReader(buf);
 
@@ -224,6 +232,8 @@ jQuery(function ($) {
 						if (mSkipBytes.result > 1 && (mSkipLen.result >> ((mSkipBytes.result - 1) * 8)) === 0) {
 							mSkipLen.error = true;
 							mSkipLen.result = "Invalid MSKIPLEN value";
+						} else {
+							mSkipLen.result += 1;
 						}
 					} else {
 						mSkipLen.error = true;
@@ -275,7 +285,7 @@ jQuery(function ($) {
 							"from": reader.globalBitIndex()
 						},
 						"error": false,
-						"result": reader.readNBits(mSkipLen * 8)
+						"result": reader.readNBits(mSkipLen.result * 8)
 					};
 
 					if (typeof metadata.result !== "string") {
@@ -377,6 +387,8 @@ jQuery(function ($) {
 
 					if (typeof uncompressedLiterals.result !== "string") {
 						uncompressedLiterals.bitIndex.to = reader.globalBitIndex();
+						write_out(uncompressedLiterals.result);
+						uncompressedLiterals.result = uncompressedLiterals.result.map(function (b) { return b.toString(16); }).join(", ");
 					} else {
 						uncompressedLiterals.error = true;
 					}
