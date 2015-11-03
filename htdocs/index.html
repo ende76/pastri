@@ -312,6 +312,36 @@ formula:
 						</pre>
 					</div>
 				</fieldset>
+				<fieldset class="hidden" id="nbltypesl">
+					<legend>NLBTYPESL</legend>
+					<a href=".explanation" class="toggle"></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+   1-11 bits: NBLTYPESL, # of literal block types, encoded with
+           the following variable length code (as it appears in
+           the compressed data, where the bits are parsed from
+           right to left, so 0110111 has the value 12):
+
+                    Value    Bit Pattern
+                    -----    -----------
+                      1                0
+                      2             0001
+                     3-4           x0011
+                     5-8          xx0101
+                     9-16        xxx0111
+                    17-32       xxxx1001
+                    33-64      xxxxx1011
+                    65-128    xxxxxx1101
+                   129-256   xxxxxxx1111
+						</pre>
+					</div>
+				</fieldset>
+
+
 
 				<fieldset class="hidden" id="end-of-stream">
 					<legend>End of stream</legend>

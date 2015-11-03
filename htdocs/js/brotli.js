@@ -10,9 +10,11 @@ jQuery(function ($) {
 			bytes = shared.toByteString(input).map(shared.toByte),
 			buf = Uint8ClampedArray.from(bytes),
 			out_buf = [],
+			tmp,
 			wbits, windowSize, isLast, isLastEmpty, fillBits0, mNibbles,
 			mNibblesIsZero, reservedBit0, mSkipBytes, mSkipLen, metadata,
 			fillBits1, mLen, isUncompressed, fillBits2, uncompressedLiterals,
+			nBlTypesL,
 			endOfStream;
 
 		function write_out(bytes) {
@@ -399,6 +401,33 @@ jQuery(function ($) {
 				}
 			}
 
+			nBlTypesL = {
+				"$el": $annotation.find("#nbltypesl").clone().appendTo($annotation),
+				"bitIndex": {
+					"from": reader.globalBitIndex()
+				},
+				"error": false,
+				"result": shared.PrefixCode.bltype_codes.lookup(reader)
+			};
+
+			if (typeof nBlTypesL.result !== "string") {
+				tmp = reader.readNBits(nBlTypesL.result[1]);
+
+				if (typeof tmp !== "string") {
+					nBlTypesL.result = nBlTypesL.result[0] + tmp;
+					nBlTypesL.bitIndex.to = reader.globalBitIndex();
+				} else {
+					nBlTypesL.error = true;
+				}
+			} else {
+				nBlTypesL.error = true;
+			}
+
+			nBlTypesL.$el.trigger("annotation/requested", nBlTypesL);
+
+			if (nBlTypesL.error) {
+				return;
+			}
 
 		} while (isLast.result === 0);
 

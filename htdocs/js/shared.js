@@ -176,4 +176,11 @@
 		 null, null, null, null, null, null, null, null, null,
 		 null, null, null, null, null, null, null, null, null],
 		15, 24);
+
+	shared.PrefixCode.bltype_codes = shared.PrefixCode.fromRawData(
+		[null, [1, 0], null, null, null, null, null, null,
+		 null, null, null, null, null, null, null, null,
+		 null, null, null, null, null, null, null, [2, 0],
+		 [17, 4], [5, 2], [65, 6], [3, 1], [33, 5], [9, 3], [129, 7]],
+		9, [129, 7]);
 } ());
