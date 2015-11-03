@@ -247,6 +247,71 @@ formula:
 						</pre>
 					</div>
 				</fieldset>
+				<fieldset class="hidden" id="mlen">
+					<legend>MLEN</legend>
+					<a href=".explanation" class="toggle"><span class="show">[+]</span><span class="hide hidden">[–]</span></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+   MNIBBLES x 4 bits: MLEN - 1, where MLEN is the length
+           of the meta-block uncompressed data in bytes (if
+           MNIBBLES is greater than 4, and the last
+           nibble is all zeros, then the stream should be
+           rejected as invalid)
+						</pre>
+					</div>
+				</fieldset>
+				<fieldset class="hidden" id="is-uncompressed">
+					<legend>ISUNCOMPRESSED</legend>
+					<a href=".explanation" class="toggle"><span class="show">[+]</span><span class="hide hidden">[–]</span></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+   1 bit:  ISUNCOMPRESSED, if set to 1, any bits of compressed
+           data up to the next byte boundary are ignored, and
+           the rest of the meta-block contains MLEN bytes of
+           literal data; this field is only present if the
+           ISLAST bit is not set (if the ignored bits are not
+           all zeros, the stream should be rejected as invalid)
+						</pre>
+					</div>
+				</fieldset>
+				<fieldset class="hidden" id="fillbits-2">
+					<legend>Fill bits</legend>
+					<a href=".explanation" class="toggle"><span class="show">[+]</span><span class="hide hidden">[–]</span></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+           […]any bits of compressed
+           data up to the next byte boundary are ignored[…]
+						</pre>
+					</div>
+				</fieldset>
+				<fieldset class="hidden" id="uncompressed-literals">
+					<legend>Uncompressed literals</legend>
+					<a href=".explanation" class="toggle"><span class="show">[+]</span><span class="hide hidden">[–]</span></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+           […]and
+           the rest of the meta-block contains MLEN bytes of
+           literal data;[…]
+						</pre>
+					</div>
+				</fieldset>
+
 				<fieldset class="hidden" id="end-of-stream">
 					<legend>End of stream</legend>
 					<a href=".explanation" class="toggle"><span class="show">[+]</span><span class="hide hidden">[–]</span></a>
@@ -264,6 +329,7 @@ formula:
 		<script src="js/vendor/jquery-2.1.4.min.js" type="text/javascript"></script>
 		<script src="js/annotation.js" type="text/javascript"></script>
 		<script src="js/brotli.js" type="text/javascript"></script>
+		<script src="js/columns.js" type="text/javascript"></script>
 		<script src="js/output.js" type="text/javascript"></script>
 		<script src="js/process-input.js" type="text/javascript"></script>
 		<script src="js/shared.js" type="text/javascript"></script>

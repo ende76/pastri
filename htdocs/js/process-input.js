@@ -38,6 +38,8 @@ jQuery(function ($) {
 		var value = $input.val();
 
 		processInput(value);
+
+		$input.trigger("input/processed");
 	}
 
 	$input.on("input/passed", handleInputPassed);

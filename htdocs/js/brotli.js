@@ -9,7 +9,9 @@ jQuery(function ($) {
 			bytes = shared.toByteString(input).map(shared.toByte),
 			buf = Uint8ClampedArray.from(bytes),
 			wbits, windowSize, isLast, isLastEmpty, fillBits0, mNibbles,
-			reservedBit0, mSkipBytes, mSkipLen, fillBits1, endOfStream;
+			mNibblesIsZero, reservedBit0, mSkipBytes, mSkipLen, metadata,
+			fillBits1, mLen, isUncompressed, fillBits2, uncompressedLiterals,
+			endOfStream;
 
 		reader = new shared.BitReader(buf);
 
@@ -117,20 +119,8 @@ jQuery(function ($) {
 					fillBits0.$el.trigger("annotation/requested", fillBits0);
 
 					if (!fillBits0.error) {
-						endOfStream = {
-							"$el": $annotation.find("#end-of-stream").clone().appendTo($annotation),
-							"bitIndex": {
-								"from": reader.globalBitIndex(),
-								"to": reader.globalBitIndex()
-							},
-							"error": false,
-							"result": ""
-						};
-
-						endOfStream.$el.trigger("annotation/requested", endOfStream);
+						break;
 					}
-
-					return;
 				}
 			}
 
@@ -300,7 +290,104 @@ jQuery(function ($) {
 						return;
 					}
 				}
+
+				continue;
 			}
+
+			mLen = {
+				"$el": $annotation.find("#mlen").clone().appendTo($annotation),
+				"bitIndex": {
+					"from": reader.globalBitIndex()
+				},
+				"error": false,
+				"result": reader.readNBits(4 * mNibbles.result)
+			};
+
+			if (typeof mLen.result !== "string") {
+				mLen.bitIndex.to = reader.globalBitIndex();
+
+				if (mNibbles.result > 4 && (mLen.result >> ((mNibbles.result - 1) * 4)) === 0) {
+					mLen.error = true;
+					mLen.result = "Invalid MLEN value";
+				} else {
+					mLen.result += 1;
+				}
+			} else {
+				mLen.error = true;
+			}
+
+			mLen.$el.trigger("annotation/requested", mLen);
+
+			if (mLen.error) {
+				return;
+			}
+
+			if (isLast.result === 0) {
+				isUncompressed = {
+					"$el": $annotation.find("#is-uncompressed").clone().appendTo($annotation),
+					"bitIndex": {
+						"from": reader.globalBitIndex()
+					},
+					"error": false,
+					"result": reader.readBit()
+				};
+
+				if (typeof isUncompressed.result !== "string") {
+					isUncompressed.bitIndex.to = reader.globalBitIndex();
+				} else {
+					isUncompressed.error = true;
+				}
+
+				isUncompressed.$el.trigger("annotation/requested", isUncompressed);
+
+				if (isUncompressed.error) {
+					return;
+				}
+
+				if (isUncompressed.result === 1) {
+					fillBits2 = {
+						"$el": $annotation.find("#fillbits-2").clone().appendTo($annotation),
+						"bitIndex": {
+							"from": reader.globalBitIndex()
+						},
+						"error": false,
+						"result": reader.readFillBits()
+					};
+
+					if (typeof fillBits2.result !== "string") {
+						fillBits2.bitIndex.to = reader.globalBitIndex();
+						if (fillBits2.result > 0) {
+							fillBits2.error = true;
+							fillBits2.result = "Non-zero fill bits";
+						}
+					} else {
+						fillBits2.error = true;
+					}
+
+					fillBits2.$el.trigger("annotation/requested", fillBits2);
+
+					uncompressedLiterals = {
+						"$el": $annotation.find("#uncompressed-literals").clone().appendTo($annotation),
+						"bitIndex": {
+							"from": reader.globalBitIndex()
+						},
+						"error": false,
+						"result": reader.readNBytes(mLen.result)
+					};
+
+					if (typeof uncompressedLiterals.result !== "string") {
+						uncompressedLiterals.bitIndex.to = reader.globalBitIndex();
+					} else {
+						uncompressedLiterals.error = true;
+					}
+
+					uncompressedLiterals.$el.trigger("annotation/requested", uncompressedLiterals);
+
+					continue;
+				}
+			}
+
+
 		} while (isLast.result === 0);
 
 		endOfStream = {
@@ -316,9 +403,9 @@ jQuery(function ($) {
 		endOfStream.$el.trigger("annotation/requested", endOfStream);
 	}
 
-	function handleInputPassed() {
+	function handleInputProcessed() {
 		processInput($(this).val());
 	}
 
-	$input.on("input/passed", handleInputPassed);
+	$input.on("input/processed", handleInputProcessed);
 });

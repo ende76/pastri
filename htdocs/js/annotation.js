@@ -9,6 +9,8 @@ jQuery(function ($) {
 			$el = data.$el,
 			$resultValue = $(".result .value", $el);
 
+		e = e;
+
 		$resultValue.text(data.result);
 		if (data.error) {
 			$resultValue.addClass("error");
@@ -21,6 +23,12 @@ jQuery(function ($) {
 			"bitindex-to": data.bitIndex.to
 		});
 		shared.show($el);
+
+		$output.trigger("register/requested", {
+			"$el": $el,
+			"from": $el.data("bitindex-from"),
+			"to": $el.data("bitindex-to")
+		});
 	}
 
 	function handleMouseenter() {

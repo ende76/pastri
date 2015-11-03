@@ -46,7 +46,7 @@ jQuery(function ($) {
 	function viewFindBinNibble(indexByte, indexNibble) {
 		var $byte = viewFindBinByte(indexByte);
 
-		return $byte.find("span").filter(function (i, span) {
+		return $byte.find("span").filter(function (i) {
 				return (indexNibble == 0 && i < 4) || (indexNibble == 1 && i >= 4);
 		});
 	}
@@ -163,6 +163,8 @@ jQuery(function ($) {
 	function handleHoverRequested(e, data) {
 		var bitIndex;
 
+		e = e;
+
 		viewUnhoverHexState();
 		modelResetHoverHexState();
 
@@ -171,7 +173,6 @@ jQuery(function ($) {
 
 		for (bitIndex = data.from; bitIndex < data.to; bitIndex += 1) {
 			modelAddHoverBinState(viewFindBinBit(bitIndex));
-			viewAddHoverDataBinState(viewFindBinBit(bitIndex), data.$el);
 			modelAddHoverHexState(viewFindHexNibbleFromIndexBit(bitIndex));
 		}
 
@@ -179,7 +180,17 @@ jQuery(function ($) {
 		viewHoverHexState();
 	}
 
-	function handleUnhoverRequested(e, data) {
+	function handleRegisterRequested(e, data) {
+		var bitIndex;
+
+		e = e;
+
+		for (bitIndex = data.from; bitIndex < data.to; bitIndex += 1) {
+			viewAddHoverDataBinState(viewFindBinBit(bitIndex), data.$el);
+		}
+	}
+
+	function handleUnhoverRequested() {
 		viewUnhoverHexState();
 		modelResetHoverHexState();
 
@@ -196,6 +207,7 @@ jQuery(function ($) {
 		.on("mouseleave", "> span > span", handleMouseleaveBin);
 
 	$output
+		.on("register/requested", handleRegisterRequested)
 		.on("hover/requested", handleHoverRequested)
 		.on("unhover/requested", handleUnhoverRequested);
 });

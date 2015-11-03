@@ -1,5 +1,5 @@
 (function () {
-	shared = {
+	window.shared = {
 		"BitReader": function (buf) {
 			this.buf = buf;
 			this.nextGlobalBitIndex = 0;
@@ -49,6 +49,20 @@
 
 				return this.readNBits(8 - bitIndex) | (this.readNBits(n - (8 - bitIndex)) << (8 - bitIndex));
 			};
+
+			this.readNBytes = function (n) {
+				var bytes = [];
+
+				if (shared.toByteIndex(this.nextGlobalBitIndex + 8 * n) >= this.buf.length && ((this.nextGlobalBitIndex + 8 * n) % 8 > 0)) {
+					return "End of buffer";
+				}
+
+				for (; n > 0; n -= 1) {
+					bytes.push(this.readNBits(8));
+				}
+
+				return bytes;
+			}
 
 			this.readFillBits = function () {
 				var nextBitIndex = this.nextBitIndex();
