@@ -51,17 +51,25 @@
 			};
 
 			this.readNBytes = function (n) {
-				var bytes = [];
+				return this.readNWords(n, 8);
+			}
 
-				if (shared.toByteIndex(this.nextGlobalBitIndex + 8 * n) >= this.buf.length && ((this.nextGlobalBitIndex + 8 * n) % 8 > 0)) {
+			this.readNWords = function (n, bitWidth) {
+				var words = [];
+
+				if (shared.toByteIndex(this.nextGlobalBitIndex + bitWidth * n) >= this.buf.length && ((this.nextGlobalBitIndex + bitWidth * n) % 8 > 0)) {
 					return "End of buffer";
 				}
 
 				for (; n > 0; n -= 1) {
-					bytes.push(this.readNBits(8));
+					words.push(this.readNBits(bitWidth));
 				}
 
-				return bytes;
+				words.toString = function () {
+					return this.map(function (b) { return b.toString(16); }).join(", ");
+				};
+
+				return words;
 			}
 
 			this.readFillBits = function () {

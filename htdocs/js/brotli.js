@@ -1,21 +1,90 @@
 jQuery(function ($) {
+	const ALPHABET_SIZE_BLOCK_COUNT = 26;
+
 	var
 		$input = $("#input-hex"),
 		$output = $("#output-bytes"),
-		$annotation = $("#annotation"),
-		reader;
+		$annotation = $("#annotation");
+
+	function unimplemented() {
+		console.error("hit unimplemented()…");
+	}
+
+	function unreachable() {
+		console.error("hit unreachable()…");
+	}
 
 	function processInput(input) {
 		var
 			bytes = shared.toByteString(input).map(shared.toByte),
 			buf = Uint8ClampedArray.from(bytes),
 			out_buf = [],
-			tmp,
-			wbits, windowSize, isLast, isLastEmpty, fillBits0, mNibbles,
-			mNibblesIsZero, reservedBit0, mSkipBytes, mSkipLen, metadata,
-			fillBits1, mLen, isUncompressed, fillBits2, uncompressedLiterals,
-			nBlTypesL,
-			endOfStream;
+			wbits, windowSize,
+			metablock,
+			endOfStream,
+			reader,
+			Entity, Metablock, PrefixCode;
+
+		Entity = function (reader, id, parser, post) {
+			this.reader = reader;
+
+			this.id = id;
+			this.bitIndex = {};
+			this.parser = parser;
+			this.post = post;
+			this.error = false;
+		};
+
+		Entity.prototype.parse = function () {
+			this.bitIndex.from = this.reader.globalBitIndex();
+
+			this.setResult(this.parser());
+			this.post();
+
+			this.bitIndex.to = this.reader.globalBitIndex();
+
+			this.$el = $annotation.find("#" + this.id).clone().appendTo($annotation);
+			this.$el.trigger("annotation/requested", this);
+
+			return !this.error;
+		};
+
+		Entity.prototype.setBitIndex = function (bitIndex) {
+			this.bitIndex = bitIndex;
+		};
+
+		Entity.prototype.setResult = function (result) {
+			this.result = result;
+		};
+
+		function noop() {}
+
+		function postMinimal() {
+			if (typeof this.result === "string") {
+				this.error = true;
+			}
+			this.bitIndex.to = this.reader.globalBitIndex();
+		}
+
+		function postFillBits() {
+			if (typeof this.result !== "string") {
+				if (this.result > 0) {
+					this.error = true;
+					this.result = "Non-zero fill bits";
+				}
+			} else {
+				this.error = true;
+			}
+			this.bitIndex.to = this.reader.globalBitIndex();
+		}
+
+		function readBit() {
+			return this.reader.readBit();
+		}
+
+		function readFillBits() {
+			return this.reader.readFillBits();
+		}
 
 		function write_out(bytes) {
 			Array.prototype.push.apply(out_buf, bytes);
@@ -23,282 +92,421 @@ jQuery(function ($) {
 			$output.html(out_buf.map(function (b) { return "<span>" + b.toString(16) + "</span>"; }).join(""));
 		}
 
+		function decodeBlockCount(reader, blockCountCode) {
+			var baseLength, extraBits;
+
+			if (typeof blockCountCode === "string") {
+				return blockCountCode;
+			}
+
+			if (blockCountCode <= 3) {
+				baseLength = 1 + (blockCountCode << 2);
+				extraBits = 2;
+			} else if (blockCountCode <= 7) {
+				baseLength = 17 + ((blockCountCode - 4) << 3);
+				extraBits = 3;
+			} else if (blockCountCode <= 11) {
+				baseLength = 49 + ((blockCountCode - 8) << 4);
+				extraBits = 4;
+			} else if (blockCountCode <= 15) {
+				baseLength = 113 + ((blockCountCode - 12) << 5);
+				extraBits = 5;
+			} else if (blockCountCode <= 17) {
+				baseLength = 241 + ((blockCountCode - 16) << 6);
+				extraBits = 6;
+			} else if (blockCountCode === 18) {
+				baseLength = 369;
+				extraBits = 7;
+			} else if (blockCountCode === 19) {
+				baseLength = 497;
+				extraBits = 8;
+			} else if (blockCountCode === 20) {
+				baseLength = 753;
+				extraBits = 9;
+			} else if (blockCountCode === 21) {
+				baseLength = 1265;
+				extraBits = 10;
+			} else if (blockCountCode === 22) {
+				baseLength = 2289;
+				extraBits = 11;
+			} else if (blockCountCode === 23) {
+				baseLength = 4337;
+				extraBits = 12;
+			} else if (blockCountCode === 24) {
+				baseLength = 8433;
+				extraBits = 13;
+			} else if (blockCountCode === 25) {
+				baseLength = 16625;
+				extraBits = 24;
+			} else {
+				unreachable();
+			}
+
+			extraBits = reader.readNBits(extraBits);
+
+			if (typeof extraBits === "string") {
+				return extraBits;
+			}
+
+			return baseLength + extraBits;
+		}
+
+		function parserPrefixCode(reader, alphabetSize) {
+			var prefixCode = new PrefixCode(reader, alphabetSize);
+
+			if (!prefixCode.hSkip.parse()) {
+				return prefixCode.hSkip.result;
+			}
+
+			if (prefixCode.hSkip.result === 1) {
+				if (!prefixCode.nSym.parse()) {
+					return prefixCode.nSym.result;
+				}
+
+				if (!prefixCode.symbols.parse()) {
+					return prefixCode.symbols.result;
+				}
+
+				if (prefixCode.nSym.result === 4) {
+					if (!prefixCode.treeSelect.parse()) {
+						return prefixCode.treeSelect.result;
+					}
+				}
+
+				if (prefixCode.symbols.result.length >= 2) {
+					(function () {
+						var
+							symbols = prefixCode.symbols.result,
+							i = symbols.length - 2,
+							j = symbols.length - 1,
+							tmp;
+
+						if (symbols[i] > symbols[j]) {
+							tmp = symbols[i];
+							symbols[i] = symbols[j];
+							symbols[j] = tmp;
+						}
+					} ());
+				}
+
+				switch (prefixCode.nSym.result) {
+					case 1:
+						return shared.PrefixCode.fromRawData([], 1, prefixCode.symbols.result[0]);
+					case 2:
+						return shared.PrefixCode.fromRawData([null, prefixCode.symbols.result[0], prefixCode.symbols.result[1]], 2, prefixCode.symbols.result[1]);
+					case 3:
+						return shared.PrefixCode.fromRawData([null, prefixCode.symbols.result[0], null, null, null, prefixCode.symbols.result[1], prefixCode.symbols.result[2]], 3, prefixCode.symbols.result[2]);
+					case 4:
+						if (prefixCode.treeSelect.result === 0) {
+							return shared.PrefixCode.fromRawData([null, null, null, prefixCode.symbols.result[0], prefixCode.symbols.result[1], prefixCode.symbols.result[2], prefixCode.symbols.result[3]], 4, prefixCode.symbols.result[3]);
+						} else {
+							return shared.PrefixCode.fromRawData([null, prefixCode.symbols.result[0], null, null, null, prefixCode.symbols.result[1], null, prefixCode.symbols.result[2], prefixCode.symbols.result[3]], 4, prefixCode.symbols.result[3]);
+						}
+					default:
+						return "Invalid value for NSYM";
+						break;
+				}
+			} else {
+				unimplemented();
+			}
+		}
+
+		PrefixCode = function (reader, alphabetSize) {
+			var
+				prefixCode = this,
+				alphabetBits = (function () {
+					var bitWidth;
+					for (bitWidth = 0; alphabetSize > (1 << bitWidth); bitWidth += 1) {}
+					return bitWidth;
+				} ());
+
+			this.reader = reader;
+
+			this.hSkip = new Entity(this.reader, "hskip",
+				function () {
+					return this.reader.readNBits(2);
+				},
+				postMinimal);
+
+			this.nSym = new Entity(this.reader, "nsym",
+				function () {
+					return this.reader.readNBits(2);
+				},
+				function () {
+					if (typeof this.result !== "string") {
+						this.result += 1;
+					} else {
+						this.error = true;
+					}
+					this.bitIndex.to = this.reader.globalBitIndex();
+				});
+
+			this.symbols = new Entity(this.reader, "symbols",
+				function () {
+					return this.reader.readNWords(prefixCode.nSym.result, alphabetBits);
+				},
+				function () {
+					var i, j, l, m;
+					if (typeof this.result !== "string") {
+						if (Math.max.apply(Math, this.result) >= alphabetSize) {
+							this.error = true
+							this.result = "Invalid symbol in prefix code";
+						} else {
+							for (i = 0, l = this.result.length - 1; i < l; i += 1) {
+								for (j = i + 1, k = this.result.length; j < k; j += 1) {
+									if (this.result[i] === this.result[j]) {
+										this.error = true;
+										this.result = "Duplicate symbols";
+									}
+								}
+							}
+						}
+
+						this.bitIndex.to = this.reader.globalBitIndex();
+					} else {
+						this.error = true;
+					}
+				});
+
+			this.treeSelect = new Entity(this.reader, "tree-select",
+				function () {
+					return this.reader.readBit();
+				},
+				postMinimal);
+		}
+
+		Metablock = function (reader) {
+			var metablock = this;
+
+			this.reader = reader;
+
+			this.isLast = new Entity(this.reader, "islast", readBit, postMinimal);
+
+			this.isLastEmpty = new Entity(this.reader, "islastempty", readBit, postMinimal);
+
+			this.fillBits0 = new Entity(this.reader, "fillbits-0", readFillBits, postFillBits);
+
+			this.mNibbles = new Entity(this.reader, "mnibbles",
+				function () {
+					return this.reader.readNBits(2);
+				},
+				function () {
+					if (typeof this.result !== "string") {
+						this.result = [4, 5, 6, 0][this.result];
+					} else {
+						this.error = true;
+					}
+					this.bitIndex.to = this.reader.globalBitIndex();
+				});
+
+			this.mNibblesIsZero = new Entity(this.reader, "mnibbles-is-zero",
+				noop,
+				function () {
+					this.setBitIndex(metablock.mNibbles.bitIndex);
+					this.result = metablock.mNibbles.result;
+					this.error = metablock.mNibbles.error;
+				});
+
+			this.reservedBit0 = new Entity(this.reader, "reserved-bit-0",
+				readBit,
+				function () {
+					if (typeof this.result !== "string") {
+						if (this.result !== 0) {
+							this.error = true;
+							this.result = "Reserved, must be zero";
+						}
+					} else {
+						this.error = true;
+					}
+					this.bitIndex.to = this.reader.globalBitIndex();
+				});
+
+			this.mSkipBytes = new Entity(this.reader, "mskipbytes",
+				function () {
+					return this.reader.readNBits(2);
+				},
+				postMinimal);
+
+			this.mSkipLen = new Entity(this.reader, "mskiplen",
+				function () {
+					return this.reader.readNBits(8 * metablock.mSkipBytes.result);
+				},
+				function () {
+					if (typeof this.result !== "string") {
+						if (metablock.mSkipBytes.result > 1 && (this.result >> ((metablock.mSkipBytes.result - 1) * 8)) === 0) {
+							this.error = true;
+							this.result = "Invalid MSKIPLEN value";
+						} else {
+							this.result += 1;
+						}
+					} else {
+						this.error = true;
+					}
+					this.bitIndex.to = this.reader.globalBitIndex();
+				});
+
+			this.fillBits1 = new Entity(this.reader, "fillbits-1", readFillBits, postFillBits);
+
+			this.metadata = new Entity(this.reader, "metadata",
+				function () {
+					return this.reader.readNBits(metablock.mSkipLen.result * 8);
+				},
+				postMinimal);
+
+			this.mLen = new Entity(this.reader, "mlen",
+				function () {
+					return this.reader.readNBits(4 * metablock.mNibbles.result);
+				},
+				function () {
+					if (typeof this.result !== "string") {
+						if (metablock.mNibbles.result > 4 && (this.result >> ((metablock.mNibbles.result - 1) * 4)) === 0) {
+							this.error = true;
+							this.result = "Invalid MLEN value";
+						} else {
+							this.result += 1;
+						}
+					} else {
+						this.error = true;
+					}
+				});
+
+			this.isUncompressed = new Entity(this.reader, "is-uncompressed", readBit, postMinimal);
+
+			this.fillBits2 = new Entity(this.reader, "fillbits-2", readFillBits, postFillBits);
+
+			this.uncompressedLiterals = new Entity(this.reader, "uncompressed-literals",
+				function () {
+					return this.reader.readNBytes(metablock.mLen.result);
+				},
+				function () {
+					if (typeof this.result !== "string") {
+						write_out(this.result);
+					} else {
+						this.error = true;
+					}
+				});
+
+			this.nBlTypesL = new Entity(this.reader, "nbltypesl",
+				function () {
+					return shared.PrefixCode.bltype_codes.lookup(this.reader);
+				},
+				function () {
+					var tmp;
+
+					if (typeof this.result !== "string") {
+						tmp = this.reader.readNBits(this.result[1]);
+
+						if (typeof tmp !== "string") {
+							this.result = this.result[0] + tmp;
+						} else {
+							this.error = true;
+						}
+					} else {
+						this.error = true;
+					}
+				});
+
+			this.hTreeBTypeL = new Entity(this.reader, "htreebtypel",
+				function () {
+					return parserPrefixCode(this.reader, metablock.nBlTypesL.result + 2);
+				},
+				postMinimal);
+
+			this.hTreeBLenL = new Entity(this.reader, "htreeblenl",
+				function () {
+					return parserPrefixCode(this.reader, ALPHABET_SIZE_BLOCK_COUNT);
+				},
+				postMinimal);
+
+			this.bLenL = new Entity(this.reader, "blenl",
+				function () {
+					var blockCountCode = metablock.hTreeBLenL.result.lookup(metablock.reader);
+
+					return decodeBlockCount(metablock.reader, blockCountCode);
+				},
+				postMinimal);
+		};
+
+
 		reader = new shared.BitReader(buf);
 
-		wbits = {
-			"$el": $annotation.find("#wbits").clone().appendTo($annotation),
-			"bitIndex": {
-				"from": reader.globalBitIndex()
+		wbits = new Entity(reader, "wbits",
+			function () {
+				return shared.PrefixCode.wbits.lookup(reader);
 			},
-			"error": false,
-			"result": shared.PrefixCode.wbits.lookup(reader)
-		};
+			postMinimal);
 
-		if (typeof wbits.result !== "string") {
-			wbits.bitIndex.to = reader.globalBitIndex();
-		} else {
-			wbits.error = true;
-		}
+		wbits.parse();
 
-		wbits.$el.trigger("annotation/requested", wbits);
+		windowSize = new Entity(reader, "window-size",
+			noop,
+			function () {
+				this.setBitIndex(wbits.bitIndex);
+				this.error = wbits.error;
 
-		if (wbits.error) {
-			return;
-		}
+				if (!this.error) {
+					this.result = (1 << wbits.result) - 16;
+				} else {
+					this.result = wbits.result;
+				}
+			});
 
-		windowSize = {
-			"$el": $annotation.find("#window-size").clone().appendTo($annotation),
-			"bitIndex": wbits.bitIndex,
-			"error": wbits.error,
-		};
-
-		if (!windowSize.error) {
-			windowSize.result = (1 << wbits.result) - 16;
-		}
-
-		windowSize.$el.trigger("annotation/requested", windowSize);
-
-		if (windowSize.error) {
+		if (!windowSize.parse()) {
 			return;
 		}
 
 		do {
-			isLast = {
-				"$el": $annotation.find("#islast").clone().appendTo($annotation),
-				"bitIndex": {
-					"from": reader.globalBitIndex()
-				},
-				"error": false,
-				"result": reader.readBit()
-			};
+			metablock = new Metablock(reader);
 
-			if (typeof isLast.result !== "string") {
-				isLast.bitIndex.to = reader.globalBitIndex();
-			} else {
-				isLast.error = true;
-			}
-
-			isLast.$el.trigger("annotation/requested", isLast);
-
-			if (isLast.error) {
+			if (!metablock.isLast.parse()) {
 				return;
 			}
 
-			if (isLast.result === 1) {
-				isLastEmpty = {
-					"$el": $annotation.find("#islastempty").clone().appendTo($annotation),
-					"bitIndex": {
-						"from": reader.globalBitIndex()
-					},
-					"error": false,
-					"result": reader.readBit()
-				};
-
-				if (typeof isLastEmpty.result !== "string") {
-					isLastEmpty.bitIndex.to = reader.globalBitIndex();
-				} else {
-					isLastEmpty.error = true;
-				}
-
-				isLastEmpty.$el.trigger("annotation/requested", isLastEmpty);
-
-				if (isLastEmpty.error) {
+			if (metablock.isLast.result === 1) {
+				if (!metablock.isLastEmpty.parse()) {
 					return;
 				}
 
-				if (isLastEmpty.result === 1) {
-					fillBits0 = {
-						"$el": $annotation.find("#fillbits-0").clone().appendTo($annotation),
-						"bitIndex": {
-							"from": reader.globalBitIndex()
-						},
-						"error": false,
-						"result": reader.readFillBits()
-					};
-
-					if (typeof fillBits0.result !== "string") {
-						fillBits0.bitIndex.to = reader.globalBitIndex();
-						if (fillBits0.result > 0) {
-							fillBits0.error = true;
-							fillBits0.result = "Non-zero fill bits";
-						}
+				if (metablock.isLastEmpty.result === 1) {
+					if (!metablock.fillBits0.parse()) {
+						return;
 					} else {
-						fillBits0.error = true;
-					}
-
-					fillBits0.$el.trigger("annotation/requested", fillBits0);
-
-					if (!fillBits0.error) {
 						break;
 					}
+
 				}
 			}
 
-			mNibbles = {
-				"$el": $annotation.find("#mnibbles").clone().appendTo($annotation),
-				"bitIndex": {
-					"from": reader.globalBitIndex()
-				},
-				"error": false,
-				"result": reader.readNBits(2)
-			};
-
-			if (typeof mNibbles.result !== "string") {
-				mNibbles.result = [4, 5, 6, 0][mNibbles.result];
-				mNibbles.bitIndex.to = reader.globalBitIndex();
-			} else {
-				mNibbles.error = true;
-			}
-
-			mNibbles.$el.trigger("annotation/requested", mNibbles);
-
-			if (mNibbles.error) {
+			if (!metablock.mNibbles.parse()) {
 				return;
 			}
 
-			if (mNibbles.result === 0) {
-				mNibblesIsZero = {
-					"$el": $annotation.find("#mnibbles-is-zero").clone().appendTo($annotation),
-					"bitIndex": mNibbles.bitIndex,
-					"error": mNibbles.error,
-					"result": mNibbles.result
-				};
+			if (metablock.mNibbles.result === 0) {
+				metablock.mNibblesIsZero.parse();
 
-				if (typeof mNibblesIsZero.result !== "string") {
-					mNibblesIsZero.bitIndex.to = reader.globalBitIndex();
-				} else {
-					mNibblesIsZero.error = true;
-				}
-
-				mNibblesIsZero.$el.trigger("annotation/requested", mNibblesIsZero);
-
-				reservedBit0 = {
-					"$el": $annotation.find("#reserved-bit-0").clone().appendTo($annotation),
-					"bitIndex": {
-						"from": reader.globalBitIndex()
-					},
-					"error": false,
-					"result": reader.readBit()
-				};
-
-				if (typeof reservedBit0.result !== "string") {
-					reservedBit0.bitIndex.to = reader.globalBitIndex();
-					reservedBit0.error = reservedBit0.result !== 0;
-					if (reservedBit0.error) {
-						reservedBit0.result = "Reserved, must be zero";
-					}
-				} else {
-					reservedBit0.error = true;
-				}
-
-				reservedBit0.$el.trigger("annotation/requested", reservedBit0);
-
-				if (reservedBit0.error) {
+				if (!metablock.reservedBit0.parse()) {
 					return;
 				}
 
-				mSkipBytes = {
-					"$el": $annotation.find("#mskipbytes").clone().appendTo($annotation),
-					"bitIndex": {
-						"from": reader.globalBitIndex()
-					},
-					"error": false,
-					"result": reader.readNBits(2)
-				};
-
-				if (typeof mSkipBytes.result !== "string") {
-					mSkipBytes.bitIndex.to = reader.globalBitIndex();
-				} else {
-					mSkipBytes.error = true;
-				}
-
-				mSkipBytes.$el.trigger("annotation/requested", mSkipBytes);
-
-				if (mSkipBytes.error) {
+				if (!metablock.mSkipBytes.parse()) {
 					return;
 				}
 
-				if (mSkipBytes.result > 0) {
-					mSkipLen = {
-						"$el": $annotation.find("#mskiplen").clone().appendTo($annotation),
-						"bitIndex": {
-							"from": reader.globalBitIndex()
-						},
-						"error": false,
-						"result": reader.readNBits(8 * mSkipBytes.result)
-					};
-
-					if (typeof mSkipLen.result !== "string") {
-						mSkipLen.bitIndex.to = reader.globalBitIndex();
-
-						if (mSkipBytes.result > 1 && (mSkipLen.result >> ((mSkipBytes.result - 1) * 8)) === 0) {
-							mSkipLen.error = true;
-							mSkipLen.result = "Invalid MSKIPLEN value";
-						} else {
-							mSkipLen.result += 1;
-						}
-					} else {
-						mSkipLen.error = true;
-					}
-
-					mSkipLen.$el.trigger("annotation/requested", mSkipLen);
-
-					if (mSkipLen.error) {
+				if (metablock.mSkipBytes.result > 0) {
+					if (!metablock.mSkipLen.parse()) {
 						return;
 					}
 				} else {
-					mSkipLen = {
-						"$el": $annotation.find("#mskiplen").clone().appendTo($annotation),
-						"bitIndex": mSkipBytes.bitIndex,
-						"error": false,
-						"result": 0
-					};
+					metablock.mSkipLen.setResult(0);
+					metablock.mSkipLen.setBitIndex(metablock.mSkipBytes.bitIndex);
 				}
 
-				fillBits1 = {
-					"$el": $annotation.find("#fillbits-1").clone().appendTo($annotation),
-					"bitIndex": {
-						"from": reader.globalBitIndex()
-					},
-					"error": false,
-					"result": reader.readFillBits()
-				};
-
-				if (typeof fillBits1.result !== "string") {
-					fillBits1.bitIndex.to = reader.globalBitIndex();
-					if (fillBits1.result > 0) {
-						fillBits1.error = true;
-						fillBits1.result = "Non-zero fill bits";
-					}
-				} else {
-					fillBits1.error = true;
-				}
-
-				fillBits1.$el.trigger("annotation/requested", fillBits1);
-
-				if (fillBits1.error) {
+				if (!metablock.fillBits1.parse()) {
 					return;
 				}
 
-				if (mSkipLen.result > 0) {
-					metadata = {
-						"$el": $annotation.find("#metadata").clone().appendTo($annotation),
-						"bitIndex": {
-							"from": reader.globalBitIndex()
-						},
-						"error": false,
-						"result": reader.readNBits(mSkipLen.result * 8)
-					};
-
-					if (typeof metadata.result !== "string") {
-						metadata.bitIndex.to = reader.globalBitIndex();
-					} else {
-						metadata.error = true;
-					}
-
-					metadata.$el.trigger("annotation/requested", metadata);
-
-					if (metadata.error) {
+				if (metablock.mSkipLen.result > 0) {
+					if (!metablock.metadata.parse()) {
 						return;
 					}
 				}
@@ -306,142 +514,56 @@ jQuery(function ($) {
 				continue;
 			}
 
-			mLen = {
-				"$el": $annotation.find("#mlen").clone().appendTo($annotation),
-				"bitIndex": {
-					"from": reader.globalBitIndex()
-				},
-				"error": false,
-				"result": reader.readNBits(4 * mNibbles.result)
-			};
-
-			if (typeof mLen.result !== "string") {
-				mLen.bitIndex.to = reader.globalBitIndex();
-
-				if (mNibbles.result > 4 && (mLen.result >> ((mNibbles.result - 1) * 4)) === 0) {
-					mLen.error = true;
-					mLen.result = "Invalid MLEN value";
-				} else {
-					mLen.result += 1;
-				}
-			} else {
-				mLen.error = true;
-			}
-
-			mLen.$el.trigger("annotation/requested", mLen);
-
-			if (mLen.error) {
+			if (!metablock.mLen.parse()) {
 				return;
 			}
 
-			if (isLast.result === 0) {
-				isUncompressed = {
-					"$el": $annotation.find("#is-uncompressed").clone().appendTo($annotation),
-					"bitIndex": {
-						"from": reader.globalBitIndex()
-					},
-					"error": false,
-					"result": reader.readBit()
-				};
-
-				if (typeof isUncompressed.result !== "string") {
-					isUncompressed.bitIndex.to = reader.globalBitIndex();
-				} else {
-					isUncompressed.error = true;
-				}
-
-				isUncompressed.$el.trigger("annotation/requested", isUncompressed);
-
-				if (isUncompressed.error) {
+			if (metablock.isLast.result === 0) {
+				if (!metablock.isUncompressed.parse()) {
 					return;
 				}
 
-				if (isUncompressed.result === 1) {
-					fillBits2 = {
-						"$el": $annotation.find("#fillbits-2").clone().appendTo($annotation),
-						"bitIndex": {
-							"from": reader.globalBitIndex()
-						},
-						"error": false,
-						"result": reader.readFillBits()
-					};
-
-					if (typeof fillBits2.result !== "string") {
-						fillBits2.bitIndex.to = reader.globalBitIndex();
-						if (fillBits2.result > 0) {
-							fillBits2.error = true;
-							fillBits2.result = "Non-zero fill bits";
-						}
-					} else {
-						fillBits2.error = true;
+				if (metablock.isUncompressed.result === 1) {
+					if (!metablock.fillBits2.parse()) {
+						return;
 					}
 
-					fillBits2.$el.trigger("annotation/requested", fillBits2);
-
-					uncompressedLiterals = {
-						"$el": $annotation.find("#uncompressed-literals").clone().appendTo($annotation),
-						"bitIndex": {
-							"from": reader.globalBitIndex()
-						},
-						"error": false,
-						"result": reader.readNBytes(mLen.result)
-					};
-
-					if (typeof uncompressedLiterals.result !== "string") {
-						uncompressedLiterals.bitIndex.to = reader.globalBitIndex();
-						write_out(uncompressedLiterals.result);
-						uncompressedLiterals.result = uncompressedLiterals.result.map(function (b) { return b.toString(16); }).join(", ");
-					} else {
-						uncompressedLiterals.error = true;
+					if (!metablock.uncompressedLiterals.parse()) {
+						return;
 					}
-
-					uncompressedLiterals.$el.trigger("annotation/requested", uncompressedLiterals);
 
 					continue;
 				}
 			}
 
-			nBlTypesL = {
-				"$el": $annotation.find("#nbltypesl").clone().appendTo($annotation),
-				"bitIndex": {
-					"from": reader.globalBitIndex()
-				},
-				"error": false,
-				"result": shared.PrefixCode.bltype_codes.lookup(reader)
-			};
-
-			if (typeof nBlTypesL.result !== "string") {
-				tmp = reader.readNBits(nBlTypesL.result[1]);
-
-				if (typeof tmp !== "string") {
-					nBlTypesL.result = nBlTypesL.result[0] + tmp;
-					nBlTypesL.bitIndex.to = reader.globalBitIndex();
-				} else {
-					nBlTypesL.error = true;
-				}
-			} else {
-				nBlTypesL.error = true;
-			}
-
-			nBlTypesL.$el.trigger("annotation/requested", nBlTypesL);
-
-			if (nBlTypesL.error) {
+			if (!metablock.nBlTypesL.parse()) {
 				return;
 			}
 
-		} while (isLast.result === 0);
+			if (metablock.nBlTypesL.result >= 2) {
+				if (!metablock.hTreeBTypeL.parse()) {
+					return;
+				}
 
-		endOfStream = {
-			"$el": $annotation.find("#end-of-stream").clone().appendTo($annotation),
-			"bitIndex": {
-				"from": reader.globalBitIndex(),
-				"to": reader.globalBitIndex()
-			},
-			"error": false,
-			"result": ""
-		};
+				if (!metablock.hTreeBLenL.parse()) {
+					return;
+				}
 
-		endOfStream.$el.trigger("annotation/requested", endOfStream);
+				if (!metablock.bLenL.parse()) {
+					return;
+				}
+			}
+
+		} while (metablock.isLast.result === 0);
+
+		endOfStream = new Entity(reader, "end-of-stream",
+			noop,
+			function () {
+				this.bitIndex.from = this.reader.globalBitIndex();
+				this.bitIndex.to = this.reader.globalBitIndex();
+				this.result = "";
+			});
+		endOfStream.parse();
 	}
 
 	function handleInputProcessed() {

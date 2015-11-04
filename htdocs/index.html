@@ -340,6 +340,127 @@ formula:
 						</pre>
 					</div>
 				</fieldset>
+				<fieldset class="hidden" id="hskip">
+					<legend>HSKIP</legend>
+					<a href=".explanation" class="toggle"></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+   2 bits: HSKIP, values of 0, 2 or 3 represent the respective
+           number of skipped code lengths. The skipped lengths
+           are taken to be zero. (An HSKIP of 1 indicates a
+           Simple prefix code.)
+						</pre>
+					</div>
+				</fieldset>
+				<fieldset class="hidden" id="nsym">
+					<legend>NSYM</legend>
+					<a href=".explanation" class="toggle"></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+   2 bits: NSYM - 1, where NSYM = # of symbols coded
+						</pre>
+					</div>
+				</fieldset>
+				<fieldset class="hidden" id="symbols">
+					<legend>Symbols</legend>
+					<a href=".explanation" class="toggle"></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+   NSYM symbols, each encoded using ALPHABET_BITS bits
+
+The value of ALPHABET_BITS depends on the alphabet of the prefix
+code: it is the smallest number of bits that can represent all
+symbols in the alphabet. E.g. for the alphabet of literal bytes,
+ALPHABET_BITS is 8. The value of each of the NSYM symbols above is
+the value of the ALPHABETS_BITS width integer value. (If the integer
+value is greater than or equal to the alphabet size, then the stream
+should be rejected as invalid.)
+						</pre>
+					</div>
+				</fieldset>
+				<fieldset class="hidden" id="tree-select">
+					<legend>Tree-Select</legend>
+					<a href=".explanation" class="toggle"></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+   1 bit:  tree-select, present only for NSYM = 4
+						</pre>
+					</div>
+				</fieldset>
+				<fieldset class="hidden" id="htreebtypel">
+					<legend>HTREE_BTYPE_L</legend>
+					<a href=".explanation" class="toggle"></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+      Prefix code over the block type code alphabet for literal
+         block types, appears only if NBLTYPESL >= 2
+						</pre>
+					</div>
+				</fieldset>
+				<fieldset class="hidden" id="htreeblenl">
+					<legend>HTREE_BLEN_L</legend>
+					<a href=".explanation" class="toggle"></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+      Prefix code over the block count code alphabet for literal
+         block counts, appears only if NBLTYPESL >= 2
+						</pre>
+					</div>
+				</fieldset>
+				<fieldset class="hidden" id="blenl">
+					<legend>BLEN_L</legend>
+					<a href=".explanation" class="toggle"></a>
+					<div class="result">
+						<label>Value</label>
+						<div class="value"></div>
+					</div>
+					<div class="explanation hidden">
+						<pre>
+      Block count code + extra bits for first literal
+         block count, appears only if NBLTYPESL >= 2
+
+      The symbols of the block count code alphabet, along with the
+         number of extra bits, and the range of block counts are as follows:
+
+                 Extra               Extra               Extra
+            Code Bits Lengths   Code Bits Lengths   Code Bits Lengths
+            ---- ---- ------    ---- ---- -------   ---- ---- -------
+             0    2    1-4       9    4    65-80    18    7   369-496
+             1    2    5-8      10    4    81-96    19    8   497-752
+             2    2    9-12     11    4    97-112   20    9   753-1264
+             3    2   13-16     12    5   113-144   21   10   1265-2288
+             4    3   17-24     13    5   145-176   22   11   2289-4336
+             5    3   25-32     14    5   177-208   23   12   4337-8432
+             6    3   33-40     15    5   209-240   24   13   8433-16624
+             7    3   41-48     16    6   241-304   25   24   16625-16793840
+             8    4   49-64     17    6   305-368
+						</pre>
+					</div>
+				</fieldset>
 
 
 

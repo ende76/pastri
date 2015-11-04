@@ -4,7 +4,7 @@
 
 #annotation > fieldset {
 	font-size: 0.6em;
-	min-width: 100px;
+	min-width: 120px;
 }
 
 #annotation > fieldset:hover, #annotation > fieldset.hover {
