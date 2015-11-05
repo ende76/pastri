@@ -120,6 +120,73 @@
 	};
 
 
+	shared.PrefixCode.fromRawData = function (buf, len, lastSymbol) {
+		var pc = new shared.PrefixCode();
+
+		pc.buf = buf;
+		pc.len = len;
+		pc.lastSymbol = lastSymbol;
+
+		return pc;
+	};
+
+	shared.PrefixCode.bit_string_from_code_and_length = function (code, len) {
+		var
+			bits = new Array(len).fill(0),
+			i;
+
+		for (i = 0; i < len; i += 1) {
+			bits[len - i - 1] = (code >> i) & 1;
+		}
+
+		return bits;
+	}
+
+
+	shared.PrefixCode.codesFromLengthsAndSymbols = function (lengths, symbols) {
+		var
+			maxLength = Math.max.apply(Math, lengths),
+			blCount = new Array(maxLength + 1).fill(0),
+			code = 0,
+			next_code = new Array(maxLength + 1).fill(0),
+			len, bits, codes, i, l;
+
+		lengths.forEach(function (len) {
+			blCount[len] += 1;
+		});
+
+		for (bits = 1; bits < maxLength + 1; bits += 1) {
+			code = (code + blCount[bits - 1]) << 1;
+			next_code[bits] = code;
+		}
+
+		codes = this.fromRawData(new Array((1 << (maxLength + 1)) - 1).fill(null), 0, null)
+		for (i = 0, l = lengths.length; i < l; i += 1) {
+			len = lengths[i];
+			if (len > 0 || maxLength === 0) {
+				codes.insert(this.bit_string_from_code_and_length(next_code[len], len), symbols[i]);
+				next_code[len] += 1;
+			}
+		}
+
+		return codes;
+	}
+
+	shared.PrefixCode.codesFromLengths = function (lengths) {
+		var symbols = new Array(lengths.length).fill(0).map(function (_, i) { _ = _; return i; });
+
+		return this.codesFromLengthsAndSymbols(lengths, symbols);
+	}
+
+	shared.PrefixCode.prototype.insert = function (code, symbol) {
+		var insertAtIndex = (1 << code.length) - 1 + code.reduce(function(acc, bit) { return (acc << 1) + bit; }, 0);
+
+		this.len += 1;
+		this.lastSymbol = symbol;
+
+		this.buf[insertAtIndex] = symbol;
+	}
+
 	shared.PrefixCode.prototype.lookup = function (reader) {
 		var
 			lookupIndex = 0,
@@ -147,17 +214,6 @@
 			return "Invalid prefix code";
 		}
 		return this.buf[lookupIndex];
-	};
-
-
-	shared.PrefixCode.fromRawData = function (buf, len, lastSymbol) {
-		var pc = new shared.PrefixCode();
-
-		pc.buf = buf;
-		pc.len = len;
-		pc.lastSymbol = lastSymbol;
-
-		return pc;
 	};
 
 	shared.PrefixCode.wbits = shared.PrefixCode.fromRawData(
@@ -198,6 +254,14 @@
 		 null, null, null, null, null, null, null, [2, 0],
 		 [17, 4], [5, 2], [65, 6], [3, 1], [33, 5], [9, 3], [129, 7]],
 		9, [129, 7]);
+
+	shared.PrefixCode.codelength_codes = shared.PrefixCode.fromRawData(
+		[null,
+		 null, null,
+		 0, 3, 4, null,
+		 null, null, null, null, null, null, 2, null,
+		 null, null, null, null, null, null, null, null, null, null, null, null, null, null, 1, 5],
+		6, 5);
 
 	shared.RingBuffer.fromArr = function (arr) {
 		return new shared.RingBuffer(arr.reverse(), arr.length - 1, arr.length);
@@ -246,5 +310,74 @@
 		}
 	}
 
+	if (!Array.prototype.fill) {
+		Array.prototype.fill = function(value, start, end) {
+
+			// Steps 1-2.
+			if (this == null) {
+				throw new TypeError('this is null or not defined');
+			}
+
+			var O = Object(this);
+
+			// Steps 3-5.
+			var len = O.length >>> 0;
+
+			// Steps 6-7.
+			// var start = arguments[1];
+			var relativeStart = start >> 0;
+
+			// Step 8.
+			var k = relativeStart < 0 ?
+				Math.max(len + relativeStart, 0) :
+				Math.min(relativeStart, len);
+
+			// Steps 9-10.
+			// var end = arguments[2];
+			var relativeEnd = end === undefined ? len : end >> 0;
+
+			// Step 11.
+			var final = relativeEnd < 0 ?
+				Math.max(len + relativeEnd, 0) :
+			 	Math.min(relativeEnd, len);
+
+			// Step 12.
+			while (k < final) {
+				O[k] = value;
+				k++;
+			}
+
+			// Step 13.
+			return O;
+		};
+	}
+
+	if (!Array.prototype.reduce) {
+	  Array.prototype.reduce = function(callback, value) {
+	    'use strict';
+	    if (this == null) {
+	      throw new TypeError('Array.prototype.reduce called on null or undefined');
+	    }
+	    if (typeof callback !== 'function') {
+	      throw new TypeError(callback + ' is not a function');
+	    }
+	    var t = Object(this), len = t.length >>> 0, k = 0;
+	    if (typeof value === "undefined") {
+	      while (k < len && !(k in t)) {
+	        k++;
+	      }
+	      if (k >= len) {
+	        throw new TypeError('Reduce of empty array with no initial value');
+	      }
+	      value = t[k++];
+	    }
+	    for (; k < len; k++) {
+	      if (k in t) {
+	        value = callback(value, t[k], k, t);
+	      }
+	    }
+	    return value;
+	  };
+	}
 
 } ());

@@ -677,6 +677,214 @@ should be rejected as invalid.)
                   </pre>
                </div>
             </fieldset>
+            <fieldset class="hidden" id="ntreesl">
+               <legend>NTREESL</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   1-11 bits: NTREESL, # of literal prefix trees, encoded
+              with the same variable length code as NBLTYPESL
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="ntreesd">
+               <legend>NTREESD</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   1-11 bits: NTREESD, # of distance prefix trees, encoded
+              with the same variable length code as NBLTYPESD
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="rlemax">
+               <legend>RLEMAX</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   1-5 bits: RLEMAX, 0 is encoded with one 0 bit, and values
+             1 - 16 are encoded with bit pattern xxxx1 (so 01001
+             is 5)
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="htreecmap">
+               <legend>Prefix code for context map</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   Prefix code with alphabet size NTREES + RLEMAX
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="cmap">
+               <legend>Size values</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   Context map size values encoded with the above prefix code
+      and run length coding for zero values. If a run length
+      would result in more lengths in total than the size of
+      the context map, then the stream should be rejected as
+      invalid.
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="imtf">
+               <legend>IMTF bit</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   1 bit:  IMTF bit, if set, we do an inverse move-to-front
+           transform on the values in the context map to get
+           the prefix code indexes
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="cmapl">
+               <legend>CMAPL</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Literal context map, encoded as described in Section 7.3.,
+         appears only if NTREESL >= 2, otherwise the context map
+         has only zero values
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="cmapd">
+               <legend>CMAPD</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Distance context map, encoded as described in Section 7.3.,
+         appears only if NTREESD >= 2, otherwise the context map
+         has only zero values
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="htreel">
+               <legend>HTREEL</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   NTREESL prefix codes for literals
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="codelengths-unsorted">
+               <legend>Code lengths for complex prefix code – unsorted</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   Code lengths for symbols in the code length alphabet given
+      just above, in the order: 1, 2, 3, 4, 0, 5, 17, 6, 16, 7,
+      8, 9, 10, 11, 12, 13, 14, 15. If HSKIP is 2, then the
+      code lengths for symbols 1 and 2 are zero, and the first
+      code length is for symbol 3. If HSKIP is 3, then the code
+      length for symbol 3 is also zero, and the first code length
+      is for symbol 4.
+
+   Symbol   Code
+   ------   ----
+   0          00
+   1        0111
+   2         011
+   3          10
+   4          01
+   5        1111
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="codelengths">
+               <legend>Code lengths for complex prefix code</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   Code lengths for symbols in order.
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="prefixcode-codelengths">
+               <legend>Prefix code for code lengths</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   Prefix code for code lengths.
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="symbols-codelengths">
+               <legend>Code length symbols</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   Sequence of at most alphabet size code lengths symbols, encoded
+      using the code length prefix code. Any trailing 0 or 17 must be
+      omitted, i.e. the last encoded code length symbol must be
+      between 1 and 16. The sum of (32768 >> code length) over
+      all the non-zero code lengths in the alphabet, including
+      those encoded using repeat code(s) of 16, must equal to
+      32768. If the number of times to repeat the previous length
+      or repeat a zero length would result in more lengths in
+      total than the number of symbols in the alphabet, then the
+      stream should be rejected as invalid.
+                  </pre>
+               </div>
+            </fieldset>
+
 
 
 
@@ -693,7 +901,8 @@ should be rejected as invalid.)
            The stream ended as expected
 						</pre>
 					</div>
-				</fieldset>			</section>
+				</fieldset>
+			</section>
 		</section>
 		<script src="js/vendor/arbiter.js" type="text/javascript"></script>
 		<script src="js/vendor/jquery-2.1.4.min.js" type="text/javascript"></script>

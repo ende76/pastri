@@ -23,7 +23,7 @@ jQuery(function ($) {
 			metablock,
 			endOfStream,
 			reader,
-			Entity, Metablock, PrefixCode;
+			Entity, Metablock, PrefixCode, ContextMap;
 
 		Entity = function (reader, id, parser, post) {
 			this.reader = reader;
@@ -63,6 +63,13 @@ jQuery(function ($) {
 			if (typeof this.result === "string") {
 				this.error = true;
 			}
+
+			if (/Array/.test(this.result.constructor.toString())) {
+				this.result.toString = function () {
+					return this.join(", ");
+				};
+			}
+
 			this.bitIndex.to = this.reader.globalBitIndex();
 		}
 
@@ -231,7 +238,23 @@ jQuery(function ($) {
 						break;
 				}
 			} else {
-				unimplemented();
+				if (!prefixCode.codelengthsUnsorted.parse()) {
+					return prefixCode.codelengthsUnsorted.result;
+				}
+
+				if (!prefixCode.codelengths.parse()) {
+					return prefixCode.codelengths.result;
+				}
+
+				if (!prefixCode.prefixCodeCodeLengths.parse()) {
+					return prefixCode.prefixCodeCodeLengths.result;
+				}
+
+				if (!prefixCode.symbolsCodeLengths.parse()) {
+					return prefixCode.symbolsCodeLengths.result;
+				}
+
+				return shared.PrefixCode.codesFromLengths(prefixCode.symbolsCodeLengths.result);
 			}
 		}
 
@@ -277,7 +300,7 @@ jQuery(function ($) {
 							this.result = "Invalid symbol in prefix code";
 						} else {
 							for (i = 0, l = this.result.length - 1; i < l; i += 1) {
-								for (j = i + 1, k = this.result.length; j < k; j += 1) {
+								for (j = i + 1, m = this.result.length; j < m; j += 1) {
 									if (this.result[i] === this.result[j]) {
 										this.error = true;
 										this.result = "Duplicate symbols";
@@ -297,6 +320,305 @@ jQuery(function ($) {
 					return this.reader.readBit();
 				},
 				postMinimal);
+
+			this.codelengthsUnsorted = new Entity(this.reader, "codelengths-unsorted",
+				function () {
+					var
+						codelengths = new Array(18).fill(0),
+						sum = 0,
+						lenNonZeroCodelengths = 0,
+						i;
+
+					for (i = prefixCode.hSkip.result; i < 18; i+= 1) {
+
+						codelengths[i] = shared.PrefixCode.codelength_codes.lookup(this.reader);
+
+						if (typeof codelengths[i] === "string") {
+							return codelengths[i];
+						};
+
+						if (codelengths[i] > 0) {
+
+							sum += 32 >> codelengths[i];
+							lenNonZeroCodelengths += 1;
+
+							if (sum === 32) {
+								break;
+							}
+
+							if (sum > 32) {
+								return "Codelengths checksum exceeds 32 in complex prefix code";
+							}
+						}
+					}
+
+					if (lenNonZeroCodelengths === 0) {
+						return "Only zero codelengths found in complex prefix code";
+					}
+
+					if (lenNonZeroCodelengths >= 2 && sum < 32) {
+						return "Codelengths checksum does not add up to 32 in complex prefix code";
+					}
+
+					return codelengths;
+				},
+				postMinimal);
+
+			this.codelengths = new Entity(this.reader, "codelengths",
+				function () {
+					var codelengthsUnsorted = prefixCode.codelengthsUnsorted.result;
+
+					this.bitIndex = prefixCode.codelengthsUnsorted.bitIndex;
+
+					if (typeof codelengthsUnsorted === "string") {
+						return codelengthsUnsorted;
+					}
+
+					return [codelengthsUnsorted[4], codelengthsUnsorted[0], codelengthsUnsorted[1], codelengthsUnsorted[2], codelengthsUnsorted[3], codelengthsUnsorted[5], codelengthsUnsorted[7], codelengthsUnsorted[9], codelengthsUnsorted[10], codelengthsUnsorted[11], codelengthsUnsorted[12], codelengthsUnsorted[13], codelengthsUnsorted[14], codelengthsUnsorted[15], codelengthsUnsorted[16], codelengthsUnsorted[17], codelengthsUnsorted[8], codelengthsUnsorted[6]];
+				},
+				postMinimal);
+
+			this.prefixCodeCodeLengths = new Entity(this.reader, "prefixcode-codelengths",
+				function () {
+					this.bitIndex = prefixCode.codelengthsUnsorted.bitIndex;
+					return shared.PrefixCode.codesFromLengths(prefixCode.codelengths.result);
+				},
+				postMinimal);
+
+			this.symbolsCodeLengths = new Entity(this.reader, "symbols-codelengths",
+				function () {
+					var
+						symbolsCodeLengths = new Array(alphabetSize).fill(0),
+						sum = 0,
+						lastSymbol = null,
+						lastRepeat = null,
+						lastNonZeroCodelength = 8,
+						lenNonZeroCodelengths = 0,
+						i = 0,
+						codeLengthCode, extraBits, newRepeat, j;
+
+					while (i < alphabetSize) {
+						codeLengthCode = prefixCode.prefixCodeCodeLengths.result.lookup(this.reader);
+
+						if (typeof codeLengthCode === "string") {
+							return codeLengthCode;
+						}
+
+						if (codeLengthCode < 16) {
+							symbolsCodeLengths[i] = codeLengthCode;
+							i += 1;
+
+							lastSymbol = codeLengthCode;
+							lastRepeat = null;
+
+							if (codeLengthCode > 0) {
+								lastNonZeroCodelength = codeLengthCode;
+								lenNonZeroCodelengths += 1;
+
+								sum += 32768 >> codeLengthCode;
+							}
+						} else if (codeLengthCode === 16) {
+							extraBits = this.reader.readNBits(2);
+
+							if (typeof extraBits === "string") {
+								return extraBits;
+							}
+
+							if (lastSymbol === 16 && lastRepeat !== null) {
+								newRepeat = (4 * (lastRepeat - 2)) + extraBits + 3;
+
+								if (i + newRepeat - lastRepeat > alphabetSize) {
+									return "Complex prefix code exceeds alphabet size with non-zero runlength";
+								}
+
+								for (; lastRepeat < newRepeat; lastRepeat += 1) {
+									symbolsCodeLengths[i] = lastNonZeroCodelength;
+									lenNonZeroCodelengths += 1;
+									i += 1;
+
+									sum += 32768 >> lastNonZeroCodelength;
+								}
+
+								if (sum === 32768) {
+									break;
+								} else if (sum > 32768) {
+									return "Codelengths checksum exceeds 32768 in complex prefix code";
+								}
+							} else {
+								lastRepeat = 3 + extraBits;
+
+								if (i + lastRepeat > alphabetSize) {
+									return "Complex prefix code exceeds alphabet size with non-zero runlength";
+								}
+
+								for (j = 0; j < lastRepeat; j += 1) {
+									symbolsCodeLengths[i] = lastNonZeroCodelength;
+									lenNonZeroCodelengths += 1;
+									i += 1;
+
+									sum += 32768 >> lastNonZeroCodelength;
+								}
+
+								if (sum === 32768) {
+									break;
+								} else if (sum > 32768) {
+									return "Codelengths checksum exceeds 32768 in complex prefix code";
+								}
+							}
+
+							lastSymbol = 16;
+						} else if (codeLengthCode === 17) {
+							extraBits = this.reader.readNBits(3);
+
+							if (typeof extraBits === "string") {
+								return extraBits;
+							}
+
+							if (lastSymbol === 17 && lastRepeat !== null) {
+								newRepeat = (8 * (lastRepeat - 2)) + extraBits + 3;
+								i += newRepeat - lastRepeat;
+								lastRepeat = newRepeat;
+							} else {
+								lastRepeat = 3 + extraBits;
+								i += lastRepeat;
+							}
+
+							if (i > alphabetSize) {
+								return "Complex prefix code exceeds alphabet size with zero runlength";
+							}
+
+							lastSymbol = 17;
+						} else {
+							unreachable();
+							return "unreachable!";
+						}
+					}
+
+					if (lenNonZeroCodelengths < 2) {
+						return "Complex prefix code with less than two non-zero code lengths"
+					}
+
+					return symbolsCodeLengths;
+				},
+				postMinimal);
+		}
+
+		function inverseMoveToFrontTransform(v) {
+			var mtf = new Array(256).fill(0).map(function (_, i) { _ = _; return i; });
+
+			v.forEach(function (item, i) {
+				var
+					index = item,
+					value = mtf[index],
+					j;
+
+				v[i] = value;
+
+				for (j = index; j > 0; j -= 1) {
+					mtf[j] = mtf[j - 1];
+				}
+
+				mtf[0] = value;
+			});
+
+			return v;
+		}
+
+		function parserContextMap(reader, nTrees, len) {
+			var contextMap = new ContextMap(reader, nTrees, len);
+
+			if (!contextMap.rLeMax.parse()) {
+				return contextMap.rLeMax.result;
+			}
+
+			if (!contextMap.hTree.parse()) {
+				return contextMap.hTree.result;
+			}
+
+			if (!contextMap.cMap.parse()) {
+				return contextMap.cMap.result;
+			}
+
+			if (!contextMap.imtf.parse()) {
+				return contextMap.imtf.result;
+			}
+
+			if (contextMap.imtf.result === 1) {
+				contextMap.cMap.result = inverseMoveToFrontTransform(contextMap.cMap.result);
+			}
+
+			return contextMap.cMap.result;
+		}
+
+		ContextMap = function (reader, nTrees, len) {
+			var contextMap = this;
+
+			this.reader = reader;
+
+			this.rLeMax = new Entity(this.reader, "rlemax",
+				function () {
+					var result = this.reader.readBit();
+
+					if (typeof result === "string" || result === 0) {
+						return result;
+					}
+
+					result = this.reader.readNBits(4);
+
+					if (typeof result === "string") {
+						return result;
+					}
+
+					return result + 1;
+				},
+				postMinimal);
+
+			this.hTree = new Entity(this.reader, "htreecmap",
+				function () {
+					return parserPrefixCode(this.reader, contextMap.rLeMax.result + nTrees);
+				},
+				postMinimal);
+
+			this.cMap = new Entity(this.reader, "cmap",
+				function () {
+					var
+						result = new Array(len),
+						runLengthCode, repeat,
+						pushed = 0;
+
+					while (pushed < len) {
+						runLengthCode = contextMap.hTree.result.lookup(this.reader);
+
+						if (typeof runLengthCode === "string") {
+							return runLengthCode;
+						}
+
+						if (runLengthCode > 0 && runLengthCode <= contextMap.rLeMax.result) {
+							repeat = this.reader.readNBits(runLengthCode);
+
+							if (typeof repeat === "string") {
+								return repeat;
+							}
+
+							repeat += (1 << runLengthCode);
+
+							if (repeat + pushed > len) {
+								return "Context map size overflow";
+							}
+
+							result.fill(0, pushed, pushed + repeat);
+							pushed += repeat;
+						} else {
+							result[pushed] = ((runLengthCode === 0) ? 0 : (runLengthCode - contextMap.rLeMax.result));
+							pushed += 1;
+						}
+					}
+
+					return result;
+				},
+				postMinimal);
+
+			this.imtf = new Entity(this.reader, "imtf", readBit, postMinimal);
 		}
 
 		Metablock = function (reader) {
@@ -503,6 +825,38 @@ jQuery(function ($) {
 					return this.reader.readNWords(metablock.nBlTypesL.result, 2);
 				},
 				postMinimal);
+
+			this.nTreesL = new Entity(this.reader, "ntreesl", lookupNBlTypes, postNBlTypes);
+
+			this.cMapL = new Entity(this.reader, "cmapl",
+				function () {
+					return parserContextMap(this.reader, metablock.nTreesL.result, 64 * metablock.nBlTypesL.result);
+				},
+				postMinimal);
+
+			this.nTreesD = new Entity(this.reader, "ntreesd", lookupNBlTypes, postNBlTypes);
+
+			this.cMapD = new Entity(this.reader, "cmapd",
+				function () {
+					return parserContextMap(this.reader, metablock.nTreesD.result, 4 * metablock.nBlTypesD.result);
+				},
+				postMinimal);
+
+			this.hTreeL = new Entity(this.reader, "htreel",
+				function () {
+					var i, hTreeL = [];
+
+					for (i = 0; i < metablock.nTreesL.result; i += 1) {
+						hTreeL[i] = parserPrefixCode(this.reader, 256);
+
+						if (typeof hTreeL[i] === "string") {
+							return hTreeL[i];
+						}
+					}
+
+					return hTreeL;
+				},
+				postMinimal);
 		};
 
 
@@ -697,6 +1051,35 @@ jQuery(function ($) {
 			if (!metablock.cMode.parse()) {
 				return;
 			}
+
+			if (!metablock.nTreesL.parse()) {
+				return;
+			}
+
+			if (metablock.nTreesL.result >= 2) {
+				if (!metablock.cMapL.parse()) {
+					return;
+				}
+			} else {
+				metablock.cMapL.result = new Array(metablock.nBlTypesL.result * 64).fill(0);
+			}
+
+			if (!metablock.nTreesD.parse()) {
+				return;
+			}
+
+			if (metablock.nTreesD.result >= 2) {
+				if (!metablock.cMapD.parse()) {
+					return;
+				}
+			} else {
+				metablock.cMapD.result = new Array(metablock.nBlTypesD.result * 4).fill(0);
+			}
+
+			if (!metablock.hTreeL.parse()) {
+				return;
+			}
+
 		} while (metablock.isLast.result === 0);
 
 		endOfStream = new Entity(reader, "end-of-stream",
