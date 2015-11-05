@@ -312,34 +312,6 @@ formula:
 						</pre>
 					</div>
 				</fieldset>
-				<fieldset class="hidden" id="nbltypesl">
-					<legend>NLBTYPESL</legend>
-					<a href=".explanation" class="toggle"></a>
-					<div class="result">
-						<label>Value</label>
-						<div class="value"></div>
-					</div>
-					<div class="explanation hidden">
-						<pre>
-   1-11 bits: NBLTYPESL, # of literal block types, encoded with
-           the following variable length code (as it appears in
-           the compressed data, where the bits are parsed from
-           right to left, so 0110111 has the value 12):
-
-                    Value    Bit Pattern
-                    -----    -----------
-                      1                0
-                      2             0001
-                     3-4           x0011
-                     5-8          xx0101
-                     9-16        xxx0111
-                    17-32       xxxx1001
-                    33-64      xxxxx1011
-                    65-128    xxxxxx1101
-                   129-256   xxxxxxx1111
-						</pre>
-					</div>
-				</fieldset>
 				<fieldset class="hidden" id="hskip">
 					<legend>HSKIP</legend>
 					<a href=".explanation" class="toggle"></a>
@@ -403,6 +375,34 @@ should be rejected as invalid.)
 						</pre>
 					</div>
 				</fieldset>
+            <fieldset class="hidden" id="nbltypesl">
+               <legend>NBLTYPESL</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   1-11 bits: NBLTYPESL, # of literal block types, encoded with
+           the following variable length code (as it appears in
+           the compressed data, where the bits are parsed from
+           right to left, so 0110111 has the value 12):
+
+                    Value    Bit Pattern
+                    -----    -----------
+                      1                0
+                      2             0001
+                     3-4           x0011
+                     5-8          xx0101
+                     9-16        xxx0111
+                    17-32       xxxx1001
+                    33-64      xxxxx1011
+                    65-128    xxxxxx1101
+                   129-256   xxxxxxx1111
+                  </pre>
+               </div>
+            </fieldset>
 				<fieldset class="hidden" id="htreebtypel">
 					<legend>HTREE_BTYPE_L</legend>
 					<a href=".explanation" class="toggle"></a>
@@ -461,6 +461,224 @@ should be rejected as invalid.)
 						</pre>
 					</div>
 				</fieldset>
+            <fieldset class="hidden" id="nbltypesi">
+               <legend>NBLTYPESI</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   1-11 bits: NBLTYPESI, # of insert-and-copy block types, encoded with
+           the following variable length code (as it appears in
+           the compressed data, where the bits are parsed from
+           right to left, so 0110111 has the value 12):
+
+                    Value    Bit Pattern
+                    -----    -----------
+                      1                0
+                      2             0001
+                     3-4           x0011
+                     5-8          xx0101
+                     9-16        xxx0111
+                    17-32       xxxx1001
+                    33-64      xxxxx1011
+                    65-128    xxxxxx1101
+                   129-256   xxxxxxx1111
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="htreebtypei">
+               <legend>HTREE_BTYPE_I</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Prefix code over the block type code alphabet for insert-and-copy
+         block types, appears only if NBLTYPESI >= 2
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="htreebleni">
+               <legend>HTREE_BLEN_I</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Prefix code over the block count code alphabet for insert-and-copy
+         block counts, appears only if NBLTYPESI >= 2
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="bleni">
+               <legend>BLEN_I</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Block count code + extra bits for first insert-and-copy
+         block count, appears only if NBLTYPESI >= 2
+
+      The symbols of the block count code alphabet, along with the
+         number of extra bits, and the range of block counts are as follows:
+
+                 Extra               Extra               Extra
+            Code Bits Lengths   Code Bits Lengths   Code Bits Lengths
+            ---- ---- ------    ---- ---- -------   ---- ---- -------
+             0    2    1-4       9    4    65-80    18    7   369-496
+             1    2    5-8      10    4    81-96    19    8   497-752
+             2    2    9-12     11    4    97-112   20    9   753-1264
+             3    2   13-16     12    5   113-144   21   10   1265-2288
+             4    3   17-24     13    5   145-176   22   11   2289-4336
+             5    3   25-32     14    5   177-208   23   12   4337-8432
+             6    3   33-40     15    5   209-240   24   13   8433-16624
+             7    3   41-48     16    6   241-304   25   24   16625-16793840
+             8    4   49-64     17    6   305-368
+                  </pre>
+               </div>
+            </fieldset>
+
+
+
+            <fieldset class="hidden" id="nbltypesd">
+               <legend>NBLTYPESD</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   1-11 bits: NBLTYPESD, # of distance block types, encoded with
+           the following variable length code (as it appears in
+           the compressed data, where the bits are parsed from
+           right to left, so 0110111 has the value 12):
+
+                    Value    Bit Pattern
+                    -----    -----------
+                      1                0
+                      2             0001
+                     3-4           x0011
+                     5-8          xx0101
+                     9-16        xxx0111
+                    17-32       xxxx1001
+                    33-64      xxxxx1011
+                    65-128    xxxxxx1101
+                   129-256   xxxxxxx1111
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="htreebtyped">
+               <legend>HTREE_BTYPE_D</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Prefix code over the block type code alphabet for distance
+         block types, appears only if NBLTYPESD >= 2
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="htreeblend">
+               <legend>HTREE_BLEN_D</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Prefix code over the block count code alphabet for distance
+         block counts, appears only if NBLTYPESD >= 2
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="blend">
+               <legend>BLEN_D</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Block count code + extra bits for first distance
+         block count, appears only if NBLTYPESD >= 2
+
+      The symbols of the block count code alphabet, along with the
+         number of extra bits, and the range of block counts are as follows:
+
+                 Extra               Extra               Extra
+            Code Bits Lengths   Code Bits Lengths   Code Bits Lengths
+            ---- ---- ------    ---- ---- -------   ---- ---- -------
+             0    2    1-4       9    4    65-80    18    7   369-496
+             1    2    5-8      10    4    81-96    19    8   497-752
+             2    2    9-12     11    4    97-112   20    9   753-1264
+             3    2   13-16     12    5   113-144   21   10   1265-2288
+             4    3   17-24     13    5   145-176   22   11   2289-4336
+             5    3   25-32     14    5   177-208   23   12   4337-8432
+             6    3   33-40     15    5   209-240   24   13   8433-16624
+             7    3   41-48     16    6   241-304   25   24   16625-16793840
+             8    4   49-64     17    6   305-368
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="npostfix">
+               <legend>NPOSTFIX</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   2 bits: NPOSTFIX, parameter used in the distance coding
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="ndirect">
+               <legend>NDIRECT</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   4 bits: four most-significant bits of NDIRECT, to get the
+           actual value of the parameter NDIRECT, left-shift
+           this four-bit number by NPOSTFIX bits
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="cmode">
+               <legend>CMODE</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+   NBLTYPESL x 2 bits: context mode for each literal block type
+                  </pre>
+               </div>
+            </fieldset>
+
+
 
 
 

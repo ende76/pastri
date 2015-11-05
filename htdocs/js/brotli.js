@@ -78,12 +78,36 @@ jQuery(function ($) {
 			this.bitIndex.to = this.reader.globalBitIndex();
 		}
 
+		function postNBlTypes() {
+			var tmp;
+
+			if (typeof this.result !== "string") {
+				tmp = this.reader.readNBits(this.result[1]);
+
+				if (typeof tmp !== "string") {
+					this.result = this.result[0] + tmp;
+				} else {
+					this.error = true;
+				}
+			} else {
+				this.error = true;
+			}
+		}
+
 		function readBit() {
 			return this.reader.readBit();
 		}
 
 		function readFillBits() {
 			return this.reader.readFillBits();
+		}
+
+		function parseHTreeBLen () {
+			return parserPrefixCode(this.reader, ALPHABET_SIZE_BLOCK_COUNT);
+		}
+
+		function lookupNBlTypes () {
+			return shared.PrefixCode.bltype_codes.lookup(this.reader);
 		}
 
 		function write_out(bytes) {
@@ -386,25 +410,7 @@ jQuery(function ($) {
 					}
 				});
 
-			this.nBlTypesL = new Entity(this.reader, "nbltypesl",
-				function () {
-					return shared.PrefixCode.bltype_codes.lookup(this.reader);
-				},
-				function () {
-					var tmp;
-
-					if (typeof this.result !== "string") {
-						tmp = this.reader.readNBits(this.result[1]);
-
-						if (typeof tmp !== "string") {
-							this.result = this.result[0] + tmp;
-						} else {
-							this.error = true;
-						}
-					} else {
-						this.error = true;
-					}
-				});
+			this.nBlTypesL = new Entity(this.reader, "nbltypesl", lookupNBlTypes, postNBlTypes);
 
 			this.hTreeBTypeL = new Entity(this.reader, "htreebtypel",
 				function () {
@@ -412,17 +418,89 @@ jQuery(function ($) {
 				},
 				postMinimal);
 
-			this.hTreeBLenL = new Entity(this.reader, "htreeblenl",
-				function () {
-					return parserPrefixCode(this.reader, ALPHABET_SIZE_BLOCK_COUNT);
-				},
+			this.hTreeBLenL = new Entity(this.reader, "htreeblenl", parseHTreeBLen, postMinimal);
+
+			this.bTypeL = new Entity(this.reader, "btypel",
+				unimplemented,
 				postMinimal);
 
 			this.bLenL = new Entity(this.reader, "blenl",
 				function () {
-					var blockCountCode = metablock.hTreeBLenL.result.lookup(metablock.reader);
+					var blockCountCode = metablock.hTreeBLenL.result.lookup(this.reader);
 
-					return decodeBlockCount(metablock.reader, blockCountCode);
+					return decodeBlockCount(this.reader, blockCountCode);
+				},
+				postMinimal);
+
+			this.nBlTypesI = new Entity(this.reader, "nbltypesi", lookupNBlTypes, postNBlTypes);
+
+			this.hTreeBTypeI = new Entity(this.reader, "htreebtypei",
+				function () {
+					return parserPrefixCode(this.reader, metablock.nBlTypesI.result + 2);
+				},
+				postMinimal);
+
+			this.hTreeBLenI = new Entity(this.reader, "htreebleni", parseHTreeBLen, postMinimal);
+
+			this.bTypeI = new Entity(this.reader, "btypei",
+				unimplemented,
+				postMinimal);
+
+			this.bLenI = new Entity(this.reader, "bleni",
+				function () {
+					var blockCountCode = metablock.hTreeBLenI.result.lookup(this.reader);
+
+					return decodeBlockCount(this.reader, blockCountCode);
+				},
+				postMinimal);
+
+			this.nBlTypesD = new Entity(this.reader, "nbltypesd", lookupNBlTypes, postNBlTypes);
+
+			this.hTreeBTypeD = new Entity(this.reader, "htreebtyped",
+				function () {
+					return parserPrefixCode(this.reader, metablock.nBlTypesD.result + 2);
+				},
+				postMinimal);
+
+			this.hTreeBLenD = new Entity(this.reader, "htreeblend", parseHTreeBLen, postMinimal);
+
+			this.bTypeD = new Entity(this.reader, "btyped",
+				unimplemented,
+				postMinimal);
+
+			this.bLenD = new Entity(this.reader, "blend",
+				function () {
+					var blockCountCode = metablock.hTreeBLenD.result.lookup(this.reader);
+
+					return decodeBlockCount(this.reader, blockCountCode);
+				},
+				postMinimal);
+
+			this.nPostfix = new Entity(this.reader, "npostfix",
+				function () {
+					return this.reader.readNBits(2);
+				},
+				postMinimal);
+
+
+			this.nDirect = new Entity(this.reader, "ndirect",
+				function () {
+					this.result = this.reader.readNBits(4);
+
+					if (typeof this.result === "string") {
+						this.error = true;
+						return this.result;
+					}
+
+					this.result <<= metablock.nPostfix.result;
+
+					return this.result;
+				},
+				postMinimal);
+
+			this.cMode = new Entity(this.reader, "cmode",
+				function () {
+					return this.reader.readNWords(metablock.nBlTypesL.result, 2);
 				},
 				postMinimal);
 		};
@@ -552,8 +630,73 @@ jQuery(function ($) {
 				if (!metablock.bLenL.parse()) {
 					return;
 				}
+
+				metablock.histBTypesL = shared.RingBuffer.fromArr([0, 1]);
+			} else {
+				metablock.bLenL.result = 16777216;
 			}
 
+			metablock.bTypeL.result = 0;
+
+			if (!metablock.nBlTypesI.parse()) {
+				return;
+			}
+
+			if (metablock.nBlTypesI.result >= 2) {
+				if (!metablock.hTreeBTypeI.parse()) {
+					return;
+				}
+
+				if (!metablock.hTreeBLenI.parse()) {
+					return;
+				}
+
+				if (!metablock.bLenI.parse()) {
+					return;
+				}
+
+				metablock.histBTypesI = shared.RingBuffer.fromArr([0, 1]);
+			} else {
+				metablock.bLenI.result = 16777216;
+			}
+
+			metablock.bTypeI.result = 0;
+
+			if (!metablock.nBlTypesD.parse()) {
+				return;
+			}
+
+			if (metablock.nBlTypesD.result >= 2) {
+				if (!metablock.hTreeBTypeD.parse()) {
+					return;
+				}
+
+				if (!metablock.hTreeBLenD.parse()) {
+					return;
+				}
+
+				if (!metablock.bLenD.parse()) {
+					return;
+				}
+
+				metablock.histBTypesD = shared.RingBuffer.fromArr([0, 1]);
+			} else {
+				metablock.bLenD.result = 16777216;
+			}
+
+			metablock.bTypeD.result = 0;
+
+			if (!metablock.nPostfix.parse()) {
+				return;
+			}
+
+			if (!metablock.nDirect.parse()) {
+				return;
+			}
+
+			if (!metablock.cMode.parse()) {
+				return;
+			}
 		} while (metablock.isLast.result === 0);
 
 		endOfStream = new Entity(reader, "end-of-stream",
