@@ -1,5 +1,7 @@
 jQuery(function ($) {
 	const ALPHABET_SIZE_BLOCK_COUNT = 26;
+	const ALPHABET_SIZE_LITERALS = 256;
+	const ALPHABET_SIZE_INSERT_AND_COPY_LENGTHS = 704;
 
 	var
 		$input = $("#input-hex"),
@@ -416,6 +418,12 @@ jQuery(function ($) {
 								lenNonZeroCodelengths += 1;
 
 								sum += 32768 >> codeLengthCode;
+
+								if (sum === 32768) {
+									break;
+								} else if (sum > 32768) {
+									return "Codelengths checksum exceeds 32768 in complex prefix code";
+								}
 							}
 						} else if (codeLengthCode === 16) {
 							extraBits = this.reader.readNBits(2);
@@ -844,17 +852,52 @@ jQuery(function ($) {
 
 			this.hTreeL = new Entity(this.reader, "htreel",
 				function () {
-					var i, hTreeL = [];
+					var i, hTree = [];
 
 					for (i = 0; i < metablock.nTreesL.result; i += 1) {
-						hTreeL[i] = parserPrefixCode(this.reader, 256);
+						hTree[i] = parserPrefixCode(this.reader, ALPHABET_SIZE_LITERALS);
 
-						if (typeof hTreeL[i] === "string") {
-							return hTreeL[i];
+						if (typeof hTree[i] === "string") {
+							return hTree[i];
 						}
 					}
 
-					return hTreeL;
+					return hTree;
+				},
+				postMinimal);
+
+			this.hTreeI = new Entity(this.reader, "htreei",
+				function () {
+					var i, hTree = [];
+
+					for (i = 0; i < metablock.nBlTypesI.result; i += 1) {
+						hTree[i] = parserPrefixCode(this.reader, ALPHABET_SIZE_INSERT_AND_COPY_LENGTHS);
+
+						if (typeof hTree[i] === "string") {
+							return hTree[i];
+						}
+					}
+
+					return hTree;
+				},
+				postMinimal);
+
+			this.hTreeD = new Entity(this.reader, "htreed",
+				function () {
+					var
+						i,
+						alphabetSize = 16 + metablock.nDirect.result + (48 << metablock.nPostfix.result),
+						hTree = [];
+
+					for (i = 0; i < metablock.nTreesD.result; i += 1) {
+						hTree[i] = parserPrefixCode(this.reader, alphabetSize);
+
+						if (typeof hTree[i] === "string") {
+							return hTree[i];
+						}
+					}
+
+					return hTree;
 				},
 				postMinimal);
 		};
@@ -1080,6 +1123,13 @@ jQuery(function ($) {
 				return;
 			}
 
+			if (!metablock.hTreeI.parse()) {
+				return;
+			}
+
+			if (!metablock.hTreeD.parse()) {
+				return;
+			}
 		} while (metablock.isLast.result === 0);
 
 		endOfStream = new Entity(reader, "end-of-stream",
