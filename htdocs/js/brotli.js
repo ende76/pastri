@@ -1495,6 +1495,20 @@ jQuery(function ($) {
 					if (!metablock.iLiteral.parse()) {
 						return;
 					}
+
+					if (metablock.nBlTypesD.result >= 2 && metablock.bLenD === 0) {
+						tmp = metablock.bTypeD.result;
+
+						if (!metablock.bTypeD.result.parse()) {
+							return;
+						}
+
+						metablock.bTypeDPrev = tmp;
+
+						if (!metablock.bLenD.parse()) {
+							return;
+						}
+					}
 				}
 
 				// @NOTE PLACEHOLDER BREAK TO AVOID INFINITE LOOP WHILE WORKING ON IMPLEMENTATION!
