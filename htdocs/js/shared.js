@@ -282,7 +282,7 @@
 		}
 	}
 
-	shared.RingBuffer.prototype.slice_tail = function (n) {
+	shared.RingBuffer.prototype.sliceTail = function (n, l) {
 		var
 			buf = [],
 			len = this.buf.length,
@@ -291,7 +291,7 @@
 		if (n >= len) {
 			console.error("RingBufferError::ParameterExceededSize");
 		} else {
-			for (i = 0; i < len; i+= 1) {
+			for (i = 0; i < l; i+= 1) {
 				buf[i] = this.buf[(this.pos + len - n + i) % len];
 			}
 

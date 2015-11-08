@@ -959,6 +959,8 @@ jQuery(function ($) {
 						outputWindow.push(byte);
 						p.push(byte);
 					});
+
+					metablock.countBytes += this.result.length;
 				});
 
 			this.nBlTypesL = new Entity(this.reader, "nbltypesl", lookupNBlTypes, postNBlTypes);
@@ -1160,14 +1162,18 @@ jQuery(function ($) {
 					return [insertLength, copyLength];
 				},
 				function () {
-					if (metablock.countBytes + metablock.iLen > metablock.mLen.result) {
+					var
+						iLen = this.result[0],
+						cLen = this.result[1];
+
+					if (metablock.countBytes + iLen > metablock.mLen.result) {
 						this.error = true;
 						this.result = "ILEN exceeds expected MLEN";
 						return;
 					}
 
-					if ((metablock.countBytes + metablock.iLen < metablock.mLen.result) &&
-						(metablock.countBytes + metablock.iLen + metablock.cLen > metablock.mLen.result)) {
+					if ((metablock.countBytes + iLen < metablock.mLen.result) &&
+						(metablock.countBytes + iLen + cLen > metablock.mLen.result)) {
 						this.error = true;
 						this.result = "CLEN exceeds expected MLEN";
 						return;
@@ -1207,12 +1213,17 @@ jQuery(function ($) {
 					write_out([this.result]);
 					p.push(this.result);
 					outputWindow.push(this.result);
+					metablock.countBytes += 1;
+
+					this.output = function () {
+						return "\"" + String.fromCharCode(this.result) + "\"";
+					};
 				});
 
 			this.cIdD = new Entity(this.reader, "cidd",
 				function () {
-					if (metablock.cLen.result < 5) {
-						return metablock.cLen.result - 2;
+					if (metablock.cLen < 5) {
+						return metablock.cLen - 2;
 					} else {
 						return 3;
 					}
@@ -1283,8 +1294,26 @@ jQuery(function ($) {
 						d.push(this.result);
 					}
 				});
-		};
 
+			this.cLiterals = new Entity(this.reader, "cliterals",
+				function () {
+					return outputWindow.sliceTail(metablock.distance.result - 1, metablock.cLen);
+				},
+				function () {
+					write_out(this.result);
+
+					this.result.forEach(function (literal) {
+						p.push(literal);
+						outputWindow.push(literal);
+					});
+
+					metablock.countBytes += this.result.length;
+
+					this.output = function () {
+						return "\"" + this.result.map(String.fromCharCode).join("") + "\"";
+					};
+				});
+		};
 
 		reader = new shared.BitReader(buf);
 
@@ -1611,8 +1640,13 @@ jQuery(function ($) {
 					}
 				}
 
-				// @NOTE PLACEHOLDER BREAK TO AVOID INFINITE LOOP WHILE WORKING ON IMPLEMENTATION!
-				break;
+				if (metablock.distance.result <= outputWindow.length) {
+					if (!metablock.cLiterals.parse()) {
+						return;
+					}
+				} else {
+					unimplemented();
+				}
 			} while (metablock.countBytes < metablock.mLen.result);
 		} while (metablock.isLast.result === 0);
 

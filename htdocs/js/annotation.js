@@ -11,7 +11,7 @@ jQuery(function ($) {
 
 		e = e;
 
-		$resultValue.text(data.result);
+		$resultValue.text((!!data.output) ? data.output() : data.result);
 		if (data.error) {
 			$resultValue.addClass("error");
 		} else {

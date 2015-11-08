@@ -5,7 +5,6 @@
 
 #output-hex, #output-bin, #output-bytes {
 	border: dashed 1px;
-	cursor: pointer;
 	font-family: Courier;
 	margin-bottom: 2em;
 	margin-right: 2em;
@@ -13,6 +12,11 @@
 	min-height: 1em;
 	overflow: auto;
 }
+
+#output-hex, #output-bin {
+	cursor: pointer;
+}
+
 
 #output-hex > span:nth-child(16n + 1) {
 	clear: right;
@@ -54,4 +58,8 @@
 #output-bytes > span {
 	float: left;
 	margin-right: 0.5em;
+}
+
+#output-bytes > span:nth-child(16n + 1) {
+	clear: left;
 }
