@@ -1207,6 +1207,22 @@ jQuery(function ($) {
 					p.push(this.result);
 					outputWindow.push(this.result);
 				});
+
+			this.cIdD = new Entity(this.reader, "cidd",
+				function () {
+					if (metablock.cLen.result < 5) {
+						return metablock.cLen.result - 2;
+					} else {
+						return 4;
+					}
+				},
+				postMinimal);
+
+			this.distanceSymbol = new Entity(this.reader, "dsymbol",
+				function () {
+					return metablock.hTreeD.result[metablock.bTypeD.result].lookup(this.reader);
+				},
+				postMinimal);
 		};
 
 
@@ -1496,7 +1512,17 @@ jQuery(function ($) {
 						return;
 					}
 
-					if (metablock.nBlTypesD.result >= 2 && metablock.bLenD === 0) {
+				}
+
+				if (metablock.countBytes === metablock.mLen.result) {
+					break;
+				}
+
+				if (metablock.insertAndCopyLengthSymbol.result < 128) {
+					metablock.distanceSymbol.result = 0;
+					metablock.error = false;
+				} else {
+					if (metablock.nBlTypesD.result >= 2 && metablock.bLenD.result === 0) {
 						tmp = metablock.bTypeD.result;
 
 						if (!metablock.bTypeD.result.parse()) {
@@ -1508,6 +1534,12 @@ jQuery(function ($) {
 						if (!metablock.bLenD.parse()) {
 							return;
 						}
+					}
+
+					metablock.bLenD.result -= 1;
+
+					if (!metablock.cIdD.parse()) {
+						return;
 					}
 				}
 
