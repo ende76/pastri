@@ -909,6 +909,160 @@ should be rejected as invalid.)
                   </pre>
                </div>
             </fieldset>
+            <fieldset class="hidden" id="btypei">
+               <legend>Block type insert-and-copy length</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Block type code for next insert-and-copy block type, appears
+         only if NBLTYPESI >= 2 and the previous insert-and-copy
+         block count is zero
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="iaclsymbol">
+               <legend>Insert-and-copy length symbol</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Insert-and-copy length, encoded as in Section 5., using the
+         insert-and-copy length prefix code with the current
+         insert-and-copy block type index
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="ilacl">
+               <legend>Insert length and copy length</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+The symbols of the insert length code alphabet, along with
+the number of insert extra bits, and the range of the insert lengths
+are as follows:
+
+        Extra               Extra               Extra
+   Code Bits Lengths   Code Bits Lengths   Code Bits Lengths
+   ---- ---- ------    ---- ---- -------   ---- ---- -------
+    0    0     0        8    2    10-13    16    6   130-193
+    1    0     1        9    2    14-17    17    7   194-321
+    2    0     2       10    3    18-25    18    8   322-577
+    3    0     3       11    3    26-33    19    9   578-1089
+    4    0     4       12    4    34-49    20   10   1090-2113
+    5    0     5       13    4    50-65    21   12   2114-6209
+    6    1    6,7      14    5    66-97    22   14   6210-22593
+    7    1    8,9      15    5    98-129   23   24   22594-16799809
+
+The symbols of the copy length code alphabet, along with the number
+of copy extra bits, and the range of copy lengths are as follows:
+
+        Extra               Extra               Extra
+   Code Bits Lengths   Code Bits Lengths   Code Bits Lengths
+   ---- ---- ------    ---- ---- -------   ---- ---- -------
+    0    0     2        8    1    10,11    16    5    70-101
+    1    0     3        9    1    12,13    17    5   102-133
+    2    0     4       10    2    14-17    18    6   134-197
+    3    0     5       11    2    18-21    19    7   198-325
+    4    0     6       12    3    22-29    20    8   326-581
+    5    0     7       13    3    30-37    21    9   582-1093
+    6    0     8       14    4    38-53    22   10   1094-2117
+    7    0     9       15    4    54-69    23   24   2118-16779333
+
+To convert an insert-and-copy length code to an insert length code
+and a copy length code, the following table can be used:
+
+       Insert
+       length        Copy length code
+       code       0-7       8-15     16-23
+              +---------+---------+
+              |         |         |
+         0-7  |   0-63  |  64-127 | <--- distance symbol 0
+              |         |         |
+              +---------+---------+---------+
+              |         |         |         |
+         0-7  | 128-191 | 192-255 | 384-447 |
+              |         |         |         |
+              +---------+---------+---------+
+              |         |         |         |
+         8-15 | 256-319 | 320-383 | 512-575 |
+              |         |         |         |
+              +---------+---------+---------+
+              |         |         |         |
+        16-23 | 448-511 | 576-639 | 640-703 |
+              |         |         |         |
+              +---------+---------+---------+
+               	</pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="btypel">
+               <legend>Block type literal</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+      Block type code for next literal block type, appears
+         only if NBLTYPESL >= 2 and the previous literal
+         block count is zero
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="cmode-btypel">
+               <legend>Context mode literal</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+            look up context mode CMODE[BTYPE_L]
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="cidl">
+               <legend>Context id literal</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+            compute context ID, CIDL from last two uncompressed bytes
+                  </pre>
+               </div>
+            </fieldset>
+            <fieldset class="hidden" id="iliteral">
+               <legend>Insert literal</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+            Next byte of the uncompressed data, encoded with the
+               literal prefix code with the index determined by the
+               previous two bytes of the uncompressed data, the
+               current literal block type, and the context map, as
+               described in Section 7.3.
+                  </pre>
+               </div>
+            </fieldset>
 
 
 
