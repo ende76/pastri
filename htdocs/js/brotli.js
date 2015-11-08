@@ -1213,14 +1213,14 @@ jQuery(function ($) {
 					if (metablock.cLen.result < 5) {
 						return metablock.cLen.result - 2;
 					} else {
-						return 4;
+						return 3;
 					}
 				},
 				postMinimal);
 
 			this.distanceSymbol = new Entity(this.reader, "dsymbol",
 				function () {
-					return metablock.hTreeD.result[metablock.bTypeD.result].lookup(this.reader);
+					return metablock.hTreeD.result[metablock.cMapD.result[4 * metablock.bTypeD.result + metablock.cIdD.result]].lookup(this.reader);
 				},
 				postMinimal);
 		};
@@ -1539,6 +1539,10 @@ jQuery(function ($) {
 					metablock.bLenD.result -= 1;
 
 					if (!metablock.cIdD.parse()) {
+						return;
+					}
+
+					if (!metablock.distanceSymbol.parse()) {
 						return;
 					}
 				}
