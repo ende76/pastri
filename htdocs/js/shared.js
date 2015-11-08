@@ -16,6 +16,7 @@
 			this.buf = buf;
 			this.pos = pos;
 			this.cap = cap;
+			this.length = buf.length;
 		},
 		"show": function ($el) {
 			return $el.removeClass(shared.classHidden);
@@ -304,6 +305,7 @@
 		if (len < this.cap) {
 			this.buf.push(item);
 			this.pos = len;
+			this.length = this.buf.length;
 		} else {
 			this.pos = (this.pos + 1) % len;
 			this.buf[this.pos] = item;

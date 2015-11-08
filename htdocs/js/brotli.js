@@ -257,8 +257,9 @@ jQuery(function ($) {
 		var
 			bytes = shared.toByteString(input).map(shared.toByte),
 			buf = Uint8ClampedArray.from(bytes),
-			out_buf = [],
+			outBuf = [],
 			p = shared.RingBuffer.fromArr([0, 0]),
+			d = shared.RingBuffer.fromArr([4, 11, 15, 16]),
 			outputWindow,
 			wbits, windowSize,
 			metablock,
@@ -348,9 +349,9 @@ jQuery(function ($) {
 		}
 
 		function write_out(bytes) {
-			Array.prototype.push.apply(out_buf, bytes);
+			Array.prototype.push.apply(outBuf, bytes);
 
-			$output.html(out_buf.map(function (b) { return "<span>" + b.toString(16) + "</span>"; }).join(""));
+			$output.html(outBuf.map(function (b) { return "<span>" + b.toString(16) + "</span>"; }).join(""));
 		}
 
 		function decodeBlockCount(reader, blockCountCode) {
@@ -1223,6 +1224,65 @@ jQuery(function ($) {
 					return metablock.hTreeD.result[metablock.cMapD.result[4 * metablock.bTypeD.result + metablock.cIdD.result]].lookup(this.reader);
 				},
 				postMinimal);
+
+			this.distance = new Entity(this.reader, "distance",
+				function () {
+					var
+						sign,
+						ds = metablock.distanceSymbol.result,
+						distance,
+						nDirect, nPostfix, nDistBits, dExtra, hCode, postfixMask, lCode, offset;
+
+					if (ds < 4) {
+						return d.nth(ds);
+					} else if (ds < 10) {
+						distance = d.nth(0);
+						sign = 2 * (ds % 2) - 1;
+
+						distance = distance + (sign * ((ds - 2) >> 1));
+
+						if (distance <= 0) {
+							return "Non-positive distance";
+						} else {
+							return distance;
+						}
+					} else if (ds < 16) {
+						distance = d.nth(1);
+						sign = 2 * (ds % 2) - 1;
+
+						distance = distance + (sign * ((ds - 8) >> 1));
+
+						if (distance <= 0) {
+							return "Non-positive distance";
+						} else {
+							return distance;
+						}
+					} else if (ds < 16 + metablock.nDirect.result) {
+						return ds - 15;
+					} else {
+						nDirect = metablock.nDirect.result;
+						nPostfix = metablock.nPostfix.result;
+						nDistBits = 1 + ((ds - (nDirect) - 16) >> (nPostfix + 1));
+
+						dExtra = this.reader.readNBits(nDistBits);
+
+						if (typeof dExtra === "string") {
+							return dExtra;
+						}
+
+						hCode = (ds - nDirect - 16) >> nPostfix;
+						postfixMask = (1 << nPostfix) - 1;
+						lCode = (ds - nDirect - 16) & postfixMask;
+						offset = ((2 + (hCode & 1)) << nDistBits) - 4;
+
+						return ((offset + dExtra) << nPostfix) + lCode + nDirect + 1;
+					}
+				},
+				function () {
+					if (metablock.distanceSymbol.result > 0 && this.result <= outputWindow.length) {
+						d.push(this.result);
+					}
+				});
 		};
 
 
@@ -1519,8 +1579,8 @@ jQuery(function ($) {
 				}
 
 				if (metablock.insertAndCopyLengthSymbol.result < 128) {
-					metablock.distanceSymbol.result = 0;
-					metablock.error = false;
+					metablock.distance.result = metablock.d.nth(0);
+					metablock.distance.error = false;
 				} else {
 					if (metablock.nBlTypesD.result >= 2 && metablock.bLenD.result === 0) {
 						tmp = metablock.bTypeD.result;
@@ -1543,6 +1603,10 @@ jQuery(function ($) {
 					}
 
 					if (!metablock.distanceSymbol.parse()) {
+						return;
+					}
+
+					if (!metablock.distance.parse()) {
 						return;
 					}
 				}
