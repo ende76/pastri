@@ -7,11 +7,23 @@ jQuery(function ($) {
 	function handleAnnotationRequested(e, data) {
 		var
 			$el = data.$el,
-			$resultValue = $(".result .value", $el);
+			$resultValue = $(".result .value", $el),
+			text;
 
 		e = e;
 
-		$resultValue.text((!!data.output) ? data.output() : data.result);
+		text = (!!data.output) ? data.output() : data.result;
+		if (!!text.slice) {
+			// @NOTE This slice is here to protect from browser crashes,
+			//       when appending a 65kb text snippet to the DOM.
+			//       There is probably a way to do that right, without
+			//       crashing, but even then it would still be a UI
+			//       challenge to present 65kb of text data in any
+			//       meaningful way.
+			text = text.slice(0, 100);
+		}
+
+		$resultValue.text(text);
 		if (data.error) {
 			$resultValue.addClass("error");
 		} else {

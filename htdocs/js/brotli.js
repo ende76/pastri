@@ -1316,10 +1316,6 @@ jQuery(function ($) {
 					});
 
 					metablock.countBytes += this.result.length;
-
-					this.output = function () {
-						return outBuf.length + " :\"" + this.result.map(String.fromCharCode).join("") + "\"";
-					};
 				});
 
 			this.dictLiterals = new Entity(this.reader, "dictliterals",
@@ -1362,7 +1358,7 @@ jQuery(function ($) {
 
 					if (transformId !== 0) {
 						unimplemented();
-						return;
+						return "Unimplemented transform id";
 						// let transformed_word = transformation(transform_id, base_word);
 					} else {
 						transformedWord = baseWord;
@@ -1678,6 +1674,7 @@ jQuery(function ($) {
 					break;
 				}
 
+
 				if (metablock.insertAndCopyLengthSymbol.result < 128) {
 					metablock.distance.result = d.nth(0);
 					metablock.distance.error = false;
@@ -1710,6 +1707,7 @@ jQuery(function ($) {
 						return;
 					}
 				}
+
 
 				if (metablock.distance.result <= outputWindow.length) {
 					if (!metablock.cLiterals.parse()) {
