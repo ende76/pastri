@@ -286,13 +286,19 @@
 		var
 			buf = [],
 			len = this.buf.length,
-			i;
+			i, count;
 
 		if (n >= len) {
 			console.error("RingBufferError::ParameterExceededSize");
 		} else {
-			for (i = 0; i < l; i+= 1) {
-				buf[i] = this.buf[(this.pos + len - n + i) % len];
+			for (count = 0, i = (this.pos + len - n) % len; count < l; count += 1) {
+				buf[count] = this.buf[i];
+
+				if (i === this.pos) {
+					i = (this.pos + len - n) % len;
+				} else {
+					i = (i + 1) % len;
+				}
 			}
 
 			return buf;

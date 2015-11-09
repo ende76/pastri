@@ -1135,6 +1135,20 @@ and a copy length code, the following table can be used:
                   </pre>
                </div>
             </fieldset>
+            <fieldset class="hidden" id="dictliterals">
+               <legend>Dictionary literals</legend>
+               <a href=".explanation" class="toggle"></a>
+               <div class="result">
+                  <label>Value</label>
+                  <div class="value"></div>
+               </div>
+               <div class="explanation hidden">
+                  <pre>
+            look up the static dictionary word, transform the word as
+            directed, and copy the result to the uncompressed stream
+                  </pre>
+               </div>
+            </fieldset>
 
 
 
@@ -1162,6 +1176,7 @@ and a copy length code, the following table can be used:
 		<script src="js/annotation.js" type="text/javascript"></script>
 		<script src="js/brotli.js" type="text/javascript"></script>
 		<script src="js/columns.js" type="text/javascript"></script>
+		<script src="js/dictionary.js" type="text/javascript"></script>
 		<script src="js/output.js" type="text/javascript"></script>
 		<script src="js/process-input.js" type="text/javascript"></script>
 		<script src="js/shared.js" type="text/javascript"></script>

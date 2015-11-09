@@ -1216,17 +1216,25 @@ jQuery(function ($) {
 					metablock.countBytes += 1;
 
 					this.output = function () {
-						return "\"" + String.fromCharCode(this.result) + "\"";
+						return outBuf.length + " :\"" + String.fromCharCode(this.result) + "\"";
 					};
 				});
 
 			this.cIdD = new Entity(this.reader, "cidd",
 				function () {
+					var result
+
 					if (metablock.cLen < 5) {
-						return metablock.cLen - 2;
+						result = metablock.cLen - 2;
 					} else {
-						return 3;
+						result = 3;
 					}
+
+					this.output = function () {
+						return "CLEN: " + metablock.cLen + "; CIDD: " + result;
+					};
+
+					return result;
 				},
 				postMinimal);
 
@@ -1310,7 +1318,70 @@ jQuery(function ($) {
 					metablock.countBytes += this.result.length;
 
 					this.output = function () {
-						return "\"" + this.result.map(String.fromCharCode).join("") + "\"";
+						return outBuf.length + " :\"" + this.result.map(String.fromCharCode).join("") + "\"";
+					};
+				});
+
+			this.dictLiterals = new Entity(this.reader, "dictliterals",
+				function () {
+					var
+						wordId,
+						nWordsLength,
+						distance = metablock.distance.result,
+						maxAllowedDistance = outputWindow.length,
+						index,
+						offsetFrom,
+						offsetTo,
+						baseWord,
+						transformId,
+						transformedWord;
+
+					if (metablock.cLen < 4 || metablock.cLen > 24) {
+						return "Invalid copy length in static dictionary";
+					}
+
+					wordId = distance - maxAllowedDistance - 1;
+					if (metablock.cLen < 4) {
+						nWordsLength = 0;
+					} else {
+						nWordsLength = 1 << BROTLI_DICTIONARY_SIZE_BITS_BY_LENGTH[metablock.cLen];
+					};
+					index = wordId % nWordsLength;
+					offsetFrom = BROTLI_DICTIONARY_OFFSETS_BY_LENGTH[metablock.cLen] + index * metablock.cLen;
+					offsetTo = BROTLI_DICTIONARY_OFFSETS_BY_LENGTH[metablock.cLen] + (index + 1) * metablock.cLen;
+					baseWord = BROTLI_DICTIONARY.slice(offsetFrom, offsetTo);
+					transformId = wordId >> BROTLI_DICTIONARY_SIZE_BITS_BY_LENGTH[metablock.cLen];
+
+					if (transformId > 120) {
+						return "Invalid transform id";
+					}
+
+					// debug(&format!("base word = {:?}", String::from_utf8(Vec::from(base_word))));
+					// debug(&format!("transform id = {:?}", transform_id));
+
+
+					if (transformId !== 0) {
+						unimplemented();
+						return;
+						// let transformed_word = transformation(transform_id, base_word);
+					} else {
+						transformedWord = baseWord;
+					}
+
+					return transformedWord;
+				},
+				function () {
+					write_out(this.result);
+
+					this.result.forEach(function (literal) {
+						p.push(literal);
+						outputWindow.push(literal);
+					});
+
+					metablock.countBytes += this.result.length;
+
+					this.output = function () {
+						return outBuf.length + " :\"" + this.result.map(String.fromCharCode).join("") + "\"";
 					};
 				});
 		};
@@ -1608,7 +1679,7 @@ jQuery(function ($) {
 				}
 
 				if (metablock.insertAndCopyLengthSymbol.result < 128) {
-					metablock.distance.result = metablock.d.nth(0);
+					metablock.distance.result = d.nth(0);
 					metablock.distance.error = false;
 				} else {
 					if (metablock.nBlTypesD.result >= 2 && metablock.bLenD.result === 0) {
@@ -1645,18 +1716,16 @@ jQuery(function ($) {
 						return;
 					}
 				} else {
-					unimplemented();
+					if (!metablock.dictLiterals.parse()) {
+						return;
+					}
 				}
 			} while (metablock.countBytes < metablock.mLen.result);
 		} while (metablock.isLast.result === 0);
 
 		endOfStream = new Entity(reader, "end-of-stream",
-			noop,
-			function () {
-				this.bitIndex.from = this.reader.globalBitIndex();
-				this.bitIndex.to = this.reader.globalBitIndex();
-				this.result = "";
-			});
+			readFillBits,
+			postFillBits);
 		endOfStream.parse();
 	}
 
