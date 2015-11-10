@@ -13,53 +13,60 @@
 	overflow: auto;
 }
 
+
+
 #output-hex, #output-bin {
 	cursor: pointer;
 }
 
+#output-hex .container,
+#output-bin .container,
+#output-bytes .container {
+	position: relative;
+}
 
-#output-hex > span:nth-child(16n + 1) {
+#output-hex .container > span:nth-child(16n + 1) {
 	clear: right;
 }
 
-#output-hex > span {
+#output-hex .container > span {
 	float: right;
 	margin-left: 0.5em;
 }
 
-#output-hex > span:hover,
-#output-hex > span.hover,
-#output-bin > span:hover,
-#output-bin > span.hover {
+#output-hex .container > span:hover,
+#output-hex .container > span.hover,
+#output-bin .container > span:hover,
+#output-bin .container > span.hover {
 	background: lightgrey;
 }
 
-#output-hex > span > span:hover,
-#output-hex > span > span.hover,
-#output-bin > span > span:hover,
-#output-bin > span > span.hover {
+#output-hex .container > span > span:hover,
+#output-hex .container > span > span.hover,
+#output-bin .container > span > span:hover,
+#output-bin .container > span > span.hover {
 	background: grey;
 }
 
 
-#output-bin > span:nth-child(4n + 1) {
+#output-bin .container > span:nth-child(4n + 1) {
 	clear: right;
 }
 
-#output-bin > span {
+#output-bin .container > span {
 	float: right;
 	margin-left: 1em;
 }
 
-#output-bin > span > span:nth-child(5) {
+#output-bin .container > span > span:nth-child(5) {
 	margin-left: 1em;
 }
 
-#output-bytes > span {
+#output-bytes .container > span {
 	float: left;
 	margin-right: 0.5em;
 }
 
-#output-bytes > span:nth-child(16n + 1) {
+#output-bytes .container > span:nth-child(16n + 1) {
 	clear: left;
 }

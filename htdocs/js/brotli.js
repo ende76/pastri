@@ -242,7 +242,7 @@ jQuery(function ($) {
 
 	var
 		$input = $("#input-hex"),
-		$output = $("#output-bytes"),
+		$output = $("#output-bytes .container"),
 		$annotation = $("#annotation");
 
 	function unimplemented() {

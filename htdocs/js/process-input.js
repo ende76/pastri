@@ -1,8 +1,8 @@
 jQuery(function ($) {
 	var
 		$input = $("#input-hex"),
-		$outputHex = $("#output-hex"),
-		$outputBin = $("#output-bin");
+		$outputHex = $("#output-hex .container"),
+		$outputBin = $("#output-bin .container");
 
 	function spanWrapped(html) {
 		return "<span>" + html + "</span>";

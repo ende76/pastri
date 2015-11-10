@@ -1,5 +1,6 @@
 #annotation {
 	float: left;
+	position: relative;
 }
 
 #annotation > fieldset {

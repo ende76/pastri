@@ -4,6 +4,7 @@ jQuery(function ($) {
 		$output = $("#output"),
 		$outputBin = $("#output-bin"),
 		$outputHex = $("#output-hex"),
+		$annotation = $("#annotation"),
 		state = {
 			"bin": {
 				"$hover": $("")
@@ -40,7 +41,7 @@ jQuery(function ($) {
 	}
 
 	function viewFindBinByte(index) {
-		return $outputBin.find("> span").eq(index);
+		return $outputBin.find(".container > span").eq(index);
 	}
 
 	function viewFindBinNibble(indexByte, indexNibble) {
@@ -58,7 +59,7 @@ jQuery(function ($) {
 	}
 
 	function viewFindHexByte(index) {
-		return $outputHex.find("> span").eq(index);
+		return $outputHex.find(".container > span").eq(index);
 	}
 
 	function viewFindHexNibble(indexByte, indexNibble) {
@@ -127,7 +128,7 @@ jQuery(function ($) {
 		modelResetHoverBinState();
 
 		if (!!$hoveredEl.data("$hover")) {
-			$hoveredEl.data("$hover").addClass("hover");
+			$annotation.trigger("hover/requested", $hoveredEl.data("$hover"));
 		}
 
 		updateHoverHexFromBin(indexByte, indexNibble);
@@ -141,7 +142,7 @@ jQuery(function ($) {
 		modelResetHoverHexState();
 
 		if (!!$hoveredEl.data("$hover")) {
-			$hoveredEl.data("$hover").removeClass("hover");
+			$annotation.trigger("unhover/requested", $hoveredEl.data("$hover"));
 		}
 	}
 
@@ -178,6 +179,14 @@ jQuery(function ($) {
 
 		viewHoverBinState();
 		viewHoverHexState();
+
+		$outputBin.stop(true, false).animate({
+			"scrollTop": viewFindBinBit(data.from).position().top
+		}, 250);
+
+		$outputHex.stop(true, false).animate({
+			"scrollTop": viewFindHexNibbleFromIndexBit(data.from).position().top
+		}, 250);
 	}
 
 	function handleRegisterRequested(e, data) {
@@ -199,12 +208,12 @@ jQuery(function ($) {
 	}
 
 	$outputHex
-		.on("mouseenter", "> span > span", handleMouseenterHex)
-		.on("mouseleave", "> span > span", handleMouseleaveHex);
+		.on("mouseenter", ".container > span > span", handleMouseenterHex)
+		.on("mouseleave", ".container > span > span", handleMouseleaveHex);
 
 	$outputBin
-		.on("mouseenter", "> span > span", handleMouseenterBin)
-		.on("mouseleave", "> span > span", handleMouseleaveBin);
+		.on("mouseenter", ".container > span > span", handleMouseenterBin)
+		.on("mouseleave", ".container > span > span", handleMouseleaveBin);
 
 	$output
 		.on("register/requested", handleRegisterRequested)

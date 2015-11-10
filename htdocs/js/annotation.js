@@ -75,10 +75,27 @@ jQuery(function ($) {
 		});
 	}
 
+	function handleHoverRequested(e, el) {
+		var $el = $(el);
+
+		$el.addClass("hover");
+
+		$annotation.parent().stop(true, false).animate({
+			"scrollTop": $el.position().top
+		}, 250);
+	}
+
+	function handleUnhoverRequested(e, el) {
+		var $el = $(el);
+		$el.removeClass("hover");
+	}
+
 	$annotation
 		.on("annotation/requested", "fieldset", handleAnnotationRequested)
 		.on("mouseenter", "fieldset", handleMouseenter)
-		.on("mouseleave", "fieldset", handleMouseleave);
+		.on("mouseleave", "fieldset", handleMouseleave)
+		.on("hover/requested", handleHoverRequested)
+		.on("unhover/requested", handleUnhoverRequested);
 
 	$input.on("input/passed", handleInputPassed);
 });
