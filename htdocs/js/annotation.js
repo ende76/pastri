@@ -13,7 +13,7 @@ jQuery(function ($) {
 		e = e;
 
 		text = (!!data.output) ? data.output() : data.result;
-		if (!!text.slice) {
+		if (text !== null && !!text.slice) {
 			// @NOTE This slice is here to protect from browser crashes,
 			//       when appending a 65kb text snippet to the DOM.
 			//       There is probably a way to do that right, without
@@ -82,7 +82,7 @@ jQuery(function ($) {
 
 		$annotation.parent().stop(true, false).animate({
 			"scrollTop": $el.position().top
-		}, 250);
+		}, 300);
 	}
 
 	function handleUnhoverRequested(e, el) {
