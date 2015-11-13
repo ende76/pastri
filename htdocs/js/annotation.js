@@ -1,5 +1,6 @@
 jQuery(function ($) {
 	var
+		classHover = "hover",
 		$annotation = $("#annotation"),
 		$output = $("#output"),
 		$input = $("#input-hex");
@@ -78,7 +79,7 @@ jQuery(function ($) {
 	function handleHoverRequested(e, el) {
 		var $el = $(el);
 
-		$el.addClass("hover");
+		$el.addClass(classHover);
 
 		$annotation.parent().stop(true, false).animate({
 			"scrollTop": $el.position().top
@@ -87,7 +88,7 @@ jQuery(function ($) {
 
 	function handleUnhoverRequested(e, el) {
 		var $el = $(el);
-		$el.removeClass("hover");
+		$el.removeClass(classHover);
 	}
 
 	$annotation
